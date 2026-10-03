@@ -20,6 +20,24 @@ The input is **the operator's production dashboard page itself**, the file the o
 | **The request** | The new device's name and device type, and the existing device to model it on | A new platform coming into service (the one integrated in [use case 1](../use-case-1-new-integration/)), to be added with the same attributes as the others | It is the operator's real next need. The model is a device whose names are its own, so the copy cannot inherit a filter another device shares; the review shows anything shared anyway |
 | **A reported fault** (debug prompt only) | A symptom in an operator's words: one device's tiles open another device's alarms | No line number and no cause, only what an operator sees | It shows Bob going from a symptom to the line without changing anything, which is how dashboard faults arrive in practice |
 
+### The files, one by one
+
+The operator sent **one file**: the dashboard page. The operator's file and device names are not published.
+
+| # | File | Size | What it is | Role in the use case |
+|---|---|---|---|---|
+| 1 | The dashboard page (`.html`) | ~690 lines, ~145 KB | A Netcool Impact Operator View page: the layout of the area's dashboard, 22 device rows, about 100 click handlers on the tiles, and four functions (add a filter, open a link, select all, unselect all) in inline JavaScript | The only code: prompt 1 copies a model row in a copy of this page; prompts 2 and 4 compare the copies with it; prompt 5 reads it to trace a fault |
+
+**Referenced by the page but not sent:**
+
+| What | How many | What it does on the live system | Effect on the use case |
+|---|---|---|---|
+| Scripts loaded by the page | 7 (a UI framework, its plugins, and three of the operator's own scripts) | Fetch the alarm counts, build the device filter from the ticked checkboxes, and draw the tiles | The new device's counts stay at 0 until these scripts know its device type; the review asks the operator to confirm. The prompts claim nothing about them |
+| Style sheets and images | 2 style sheets and the images they use | The look of the page | For the before-and-after picture, the page was opened locally with mock styles |
+| The Impact policy that feeds the page | 1 | Computes the counts per device every minute | Not needed to add the device to the page; needed for its counts on a live system |
+
+The use case was defined as "complete code package and existing code, with mock data": only the page came, so the prompts work on the page alone and say so in every report.
+
 ### Why this kind of input
 
 - **The production page, not a simplified copy.** Adding a device by hand means copying about ten lines from a row that works and changing every name in them. The real page has twenty-odd rows that look almost the same, filter names that differ by one word, and style values that depend on the length of each label. That is where hand edits go wrong unseen, and exactly what a simplified copy would hide.

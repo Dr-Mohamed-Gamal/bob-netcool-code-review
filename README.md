@@ -85,7 +85,7 @@ bob-netcool-code-review/
 └── index.html, dashboard.html, integration.html   # the same use cases as web pages
 ```
 
-Each prompt file holds the prompt to copy and, under it, what the prompt reads, what the scripts do, what Bob decides, what the gate refuses, what it writes, and why its words are chosen.
+Each use case README starts with **the files the operator sent, one by one**: what each file is, its size, what it holds and its role in the use case, followed by why that kind of input is used and what was not sent. Each prompt file holds the prompt to copy and, under it, what the prompt reads, what the scripts do, what Bob decides, what the gate refuses, what it writes, and why its words are chosen.
 
 ## Web Pages
 

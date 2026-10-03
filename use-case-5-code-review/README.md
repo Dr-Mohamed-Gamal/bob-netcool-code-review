@@ -22,6 +22,36 @@ The operator sent **production code, not samples**: a policy and a rules file th
 | **The ten lookup and include files** | Data and small rule files the rules read, from under 100 bytes to about 540 KB each | Alarm names, pre-classification of alarm types, enrichment by node and port, automatic-ticket rules, node lists, the alarms included in service-level monitoring | Context, not code to change. Bob reads them when a finding depends on them (a table used but not declared, a key that cannot match); the commands are given the rules file only. The path change edits the lines that point to them, never the files |
 | **The rules code standards** | The operator's document, about 55 lines | Five standards: no hard-coded values (lists of nodes, ports or alarm identifiers moved into lookups); every path through `$NC_RULES_HOME` and all table declarations in one place; one key=value log format naming the rules file and the node; no commented-out code; a standard folder tree for a probe's rules | The yardstick for the rules. The clean-up does standard 4 and the path change does standard 2. Standards 1, 3 and 5 need new code written and were kept out of the five prompts; [use case 1](../use-case-1-new-integration/) generates new rules directly in the tree of standard 5 |
 
+### The files, one by one
+
+The operator sent 14 files: two pieces of code, two documents, and ten files the rules read. Each is described by its role; the operator's file names are not published.
+
+**The Impact policy and its document**
+
+| # | File | Size | What it is | Role in the use case |
+|---|---|---|---|---|
+| 1 | The ticketing policy (`.ipl`) | ~3,300 lines | The production policy that turns an alarm flagged for a ticket into an incident: eligibility check, local dates, ticket fields, per-domain and per-alarm title and work log, XML envelope, asynchronous send, ticket state written back to the event. It queries the event store and reference tables a dozen times, logs on about 90 lines, and carries about 160 lines of commented-out code | The code all five prompts work on, in copies (`step-1-fixed` → `step-2-cleaned` → `step-3-standardized`); the original stays as the baseline for the final review |
+| 2 | The refactoring requirement (`.txt`) | ~430 lines | The operator's own brief for this policy: what it does, the defects to fix, the database and logging work, dead-code removal, camelCase naming, and the three-tier modular target | The yardstick: prompt 1 judges defects by their effect on the ticket it describes; prompts 3 and 4 do the items of its section 3; the gate checks every requirement a change touches |
+
+**The probe rules, their document and the files they read**
+
+| # | File | Size | What it is | Role in the use case |
+|---|---|---|---|---|
+| 3 | The probe rules file (`.rules`) | ~1,900 lines | The production rules of the probe that receives an IP VPN element manager's alarms: table declarations with absolute paths, alarm classification, field mapping, enrichment, automatic-ticket flags, about 25 discard filters, and about 340 comment lines, many of them switched-off code | The second body of code; the same five prompts work on it in copies |
+| 4 | The rules code standards (`.txt`) | ~55 lines | Five standards for rules files: no hard-coded values, paths through `$NC_RULES_HOME` and one place for tables, one log format, no commented-out code, a standard folder tree | The yardstick for the rules: prompt 3 does standard 4, prompt 4 does standard 2. Reused in [use case 1](../use-case-1-new-integration/) as the target layout of new rules |
+| 5 | Alarm-name and code tables (`.lookup`) | ~13,700 lines, 6 tables | Inline tables that turn the element manager's numeric codes into names (alarm names and other code maps) | Read by the rules on every event; context for findings about names and codes |
+| 6 | Pre-classification table (`.lookup`) | ~3,700 lines, 1 table | Each event id mapped to a pre-class number used for correlation | Context; the review checks the rules use the table they declare |
+| 7 | Link enrichment table (`.lookup`) | ~9,300 lines, 1 table | Node and port mapped to the link's designation (its type and speed) | Context for enrichment findings |
+| 8 | Automatic-ticket routing (`.lookup`) | ~170 rows, 4 columns | Alarm name → raise a ticket or not, the team that receives it, and the delay before it is raised | Context; its declaration line is one of the paths prompt 4 standardizes |
+| 9 | IP VPN alarm classes (`.lookup`) | ~60 rows | Alarm name → the class of alarms the rules treat as IP VPN alarms | Context; path standardized in prompt 4 |
+| 10 | Service-level inclusion (`.lookup`) | 4 rows | The alarms that count for service-level monitoring | Context; path standardized in prompt 4 |
+| 11 | Topology enrichment include (`.rules`) | ~630 lines | Rules that split an affected object's name (port, card) into shelf, slot and port for topology correlation | Included by the rules; context |
+| 12 | Older enrichment include (`.rules`) | ~260 lines | An earlier enrichment of alarm names | Referenced only from a commented-out line, so it is not used today; prompt 3 removes that line as commented-out code |
+| 13 | Service alarm classes (`.lookup`) | 14 rows | Alarm name → class, for another set of alarms | Not referenced by the rules file: sent as context; nothing in the prompts depends on it |
+| 14 | Node group list (`.lookup`) | 84 rows | Node names that belong to one group of nodes | Not referenced by the rules file: sent as context |
+
+**Referenced by the rules but not sent:** fourteen more files — customer-tier lists by node, shelf, slot and port (four tiers), service-level tables by node, shelf, slot and port (four), two dashboard topology maps, a special-events table, a ticket-domain table, a second automatic-ticket table, and a common include. The prompts do not need their contents: the review checks how the rules declare and use them, and the path change rewrites only the lines that point to them.
+
 ### Why this kind of input
 
 - **Production code** carries the conditions in which a careless edit silently breaks a ticket or an event: repeated branches, switched-off blocks, near-identical names. A clean demo file would hide that risk.

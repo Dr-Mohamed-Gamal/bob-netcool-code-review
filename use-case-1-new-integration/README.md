@@ -21,6 +21,52 @@ The operator sent the **integration package exactly as an integration team recei
 | **The business requirement** | The operator's requirement document for the platform | The platform's node types and sites, and the scope: integrate the platform's alarms and the hardware alarms of its switches and servers | It sets the **scope**: it explains why the switch and server sheets are part of the work. It is read by Bob and the engineer, not by the scripts; it names staff, so it stays in the private workspace |
 | **The rules code standards** | The operator's standard for rules files, reused from use case 5 and copied into this workspace | The folder tree for a probe's rules, every path through `$NC_RULES_HOME`, all tables declared in one place, data in lookups, one log format, no commented-out code | It defines the **target layout**: the rules are generated directly in the tree the operator wants, instead of being refactored into it later |
 
+### The files, one by one
+
+The operator sent one zip: a business requirement, a trap-list workbook, and a folder of MIBs in three vendor kits (63 MIB files and a read-me). Each is described by its role; the operator's file names and the vendors' names are not published. "In the catalogue" counts the traps of each file that the trap list puts in scope.
+
+**The documents**
+
+| # | File | Size | What it is | Role in the use case |
+|---|---|---|---|---|
+| 1 | The business requirement (`.docx`) | ~0.5 MB, 7 pages | The operator's requirement for the platform: its node types and sites, and the integration scope — the platform's alarms and the hardware alarms of its switches and servers | Sets the scope that explains why the switch and server sheets belong to the work; read by Bob and the engineer, not by the scripts; kept in the private workspace because it names staff |
+| 2 | The trap-list workbook (`.xlsx`) | 9 sheets, 7 used | The integration team's list of traps in scope, with severities and expected event texts (each sheet is described in the next table) | The input of prompt 1: every row is matched to the MIBs, and every disagreement becomes a decision |
+| 3 | The rules code standards (`.txt`) | ~55 lines | The operator's standard for rules files, sent with [use case 5](../use-case-5-code-review/) and copied into this workspace | The input of prompt 2: the layout the rules are generated in |
+
+**Kit A — the platform vendor's application MIBs (9 files, 124 traps)**
+
+| # | File | Traps | What it defines | In the catalogue |
+|---|---|---|---|---|
+| 4 | The platform's main MIB | 54 | The packet-processing gateways' traps: links, boards, devices, licences, data sources, integrated services, attacks, tracked network entities | 50 |
+| 5 | The analytics MIB | 39 | The analytics and reporting cluster's traps: storage use, data uploads, cluster health, reports, backlogs | 36 |
+| 6 | The subscriber manager MIB | 13 | Provisioning errors, connection loss, system and congestion traps of the subscriber manager | 7, plus 2 traps the list names under its OIDs that the MIB does not define |
+| 7 | The data mediator MIB | 7 | Record-rate and file-transfer traps of the data mediator | 5 |
+| 8 | The management server MIB | 2 | One rising and one falling trap that carry **every node's alarms**, with the alarm number in the index of their variables | Both: they carry the 165 alarm numbers of the list |
+| 9 | The cluster manager MIB (an open-source high-availability stack) | 1 | Resource status changes of the platform's clusters | 1 |
+| 10 | SNMPv2-MIB (standard) | 3 | Cold start, warm start, authentication failure | 3 |
+| 11 | DISMAN-EVENT-MIB (standard) | 5 | Event triggers that carry another object's value: rising, falling, fired | 3: they carry the server resource thresholds |
+| 12 | HOST-RESOURCES-MIB (standard) | 0 | Host variables (storage, memory) | Variables only: the memory row of the resource sheet points here |
+
+**Kit B — a server management controller's MIBs (4 files, 28 traps)**
+
+| # | File | Traps | What it defines | In the catalogue |
+|---|---|---|---|---|
+| 13 | The controller's alert MIB | 28 | Critical, non-critical and system alerts (temperature, voltage, power, fans, CPU, memory, boot, operating system), each carrying 24 variables; a recovery comes on the same trap with a "recovery" value | 27 |
+| 14 | The controller's main MIB | 0 | The controller's objects | Variables only |
+| 15–16 | The vendor's product and structure MIBs | 0 | The OID roots the other two build on | Read so that every OID resolves |
+
+**Kit C — a server vendor's full MIB kit (50 files and a read-me, 1,964 traps)**
+
+| # | File | Traps | What it defines | In the catalogue |
+|---|---|---|---|---|
+| 17 | The health MIB | 155 | Temperature, fans, power supplies, memory and processor health | 10 |
+| 18 | The network-adapter MIB | 17 | Adapter and link connectivity | 4 |
+| 19 | The management-processor MIB | 30 | The remote management board: its link, server power on and off | 4 |
+| 20 | IF-MIB (standard) | 2 | Link down and link up | 2 |
+| 21–66 | 46 other files | 1,760 | Storage controllers and drives, enclosures and racks, power, clusters, host and inventory information, interconnect and switch modules (one switch MIB alone defines 1,179 traps), and OID registries | None: the trap list does not ask for them. They are read so every definition resolves, and are ready if the scope grows |
+
+**Not sent:** the switch vendor's chassis MIB (its 17 traps are kept from the sheet, with their variables unnamed), the resource MIB of the servers' SNMP agent, a MIB for one storage trap and two subscriber-manager traps, and the "Perl mapping" the use case named. The catalogue's report asks the operator for each of them.
+
 ### The trap list, sheet by sheet
 
 | Sheet | Rows | What it holds | How the use case uses it |
