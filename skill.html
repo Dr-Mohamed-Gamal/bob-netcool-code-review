@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bob Code-Review Skill</title>
+<meta name="description" content="A generic IBM Bob skill that makes Bob's work on existing code repeatable and verifiable: review, fix, change, review a change, diagnose, each proved by a gate.">
+<style>
+:root {
+  --bg: #ffffff; --surface: #f5f7fa; --text: #1b1f24; --muted: #57606a; --line: #d8dee4;
+  --accent: #0f62fe; --accent-soft: #e8f0ff; --ok: #1a7f37; --warn: #9a6700; --code-bg: #f0f2f5;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1117; --surface: #161b22; --text: #e6edf3; --muted: #9da7b3; --line: #30363d;
+    --accent: #78a9ff; --accent-soft: #1b2a44; --ok: #3fb950; --warn: #d29922; --code-bg: #1c2128;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1117; --surface: #161b22; --text: #e6edf3; --muted: #9da7b3; --line: #30363d;
+  --accent: #78a9ff; --accent-soft: #1b2a44; --ok: #3fb950; --warn: #d29922; --code-bg: #1c2128;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "IBM Plex Sans", Helvetica, Arial, sans-serif; }
+main { max-width: 920px; margin: 0 auto; padding: 40px 16px 80px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 32px; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 12px; }
+h2 { font-size: 1.35rem; margin: 44px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.05rem; margin: 24px 0 8px; }
+p, li { color: var(--text); }
+.lead { font-size: 1.1rem; color: var(--muted); margin: 0; }
+.meta { color: var(--muted); font-size: .9rem; margin-top: 12px; }
+a { color: var(--accent); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em;
+  background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; white-space: pre-wrap; font: .86rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.table-wrap { overflow-x: auto; margin: 12px 0 20px; }
+table { border-collapse: collapse; width: 100%; font-size: .94rem; }
+th, td { border-bottom: 1px solid var(--line); padding: 9px 10px; text-align: left; vertical-align: top; }
+th { background: var(--surface); font-weight: 600; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card h3 { margin-top: 0; }
+.prompt { border: 1px solid var(--line); border-radius: 10px; margin: 18px 0; overflow: hidden; }
+.prompt .head { background: var(--surface); padding: 12px 16px; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.prompt .num { background: var(--accent); color: #fff; border-radius: 999px; min-width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+.prompt .head strong { font-size: 1.05rem; }
+.prompt .body { padding: 4px 16px 14px; }
+.prompt pre { margin: 10px 0 6px; }
+.note { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
+.ok { color: var(--ok); font-weight: 600; }
+.warn { color: var(--warn); font-weight: 600; }
+footer { border-top: 1px solid var(--line); margin-top: 56px; padding-top: 16px; color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="meta"><a href="./">IBM Bob on Netcool code</a> · <a href="dashboard.html">dashboard use case</a> · the skill</p>
+  <h1>The code-review skill for IBM Bob</h1>
+  <p class="lead">One generic Bob skill that makes Bob's work on existing code repeatable and verifiable: it reviews code, fixes it, changes it, reviews a change and diagnoses a failure, in any language, and proves each step with a gate.</p>
+  <p class="meta">Built for a telecom operator's pilot · 3 October 2026</p>
+</header>
+
+<section>
+  <h2>What it is</h2>
+  <p>A Bob skill is a folder in <code>.bob/skills/</code>: a <code>SKILL.md</code> that tells Bob when to use it and how, and the tools it brings. This one holds a set of Python scripts that do the mechanical work, so that Bob spends its effort on judgement:</p>
+  <div class="cards">
+    <div class="card"><h3>Bob decides</h3><p>Which scan hits are real defects, what the right correction is, what to copy and under which names, which difference is intended, what only the owner can settle.</p></div>
+    <div class="card"><h3>The scripts do</h3><p>Scan the code, write every report and every changed file from Bob's notes, compare the new version with the old one line by line, and refuse to finish while anything is unexplained.</p></div>
+  </div>
+  <p>Every command ends with a line that starts <code>Gate:</code>. A task is finished only when it prints <code>Gate: passed</code>.</p>
+</section>
+
+<section>
+  <h2>Generic by design</h2>
+  <p>The skill names no client, product, platform or language. Nothing in its instructions or scripts refers to the code it was tried on. That is checked: a search of the skill for the client's names, the product's names and the names in its code finds nothing.</p>
+  <ul>
+    <li><strong>Any language.</strong> The scripts read code as text. Comment styles are recognised from the files (<code>//</code> and <code>/* */</code>, <code>#</code>, <code>--</code>); in a web page, only its scripts and event attributes are read as code.</li>
+    <li><strong>The client's rules come from the client's documents.</strong> A requirement or standards document placed next to the code is read by the scripts: lists of names and types are used by the scan, and each change must say what it does about each sentence of the document.</li>
+    <li><strong>One skill, many kinds of code.</strong> In the pilot the same skill, unchanged between them, handled an event-processing policy, a set of event-probe rules and an operations dashboard page.</li>
+    <li><strong>Tested on its own code.</strong> 668 automated tests run on small synthetic samples, none taken from a client.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>The five tasks</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Task</th><th>Command</th><th>What Bob gets</th></tr></thead>
+    <tbody>
+      <tr><td><strong>B. Review code</strong></td><td><code>run.py review &lt;code&gt; --out &lt;report&gt;</code></td><td>A defect register: every scan hit decided as a finding or not, findings from reading that quote their line, the effect of each defect, the fix, and the questions for the owner.</td></tr>
+      <tr><td><strong>D. Fix</strong></td><td><code>run.py fix &lt;code&gt; --out &lt;folder&gt; --log &lt;log&gt; --register &lt;review&gt;</code></td><td>A corrected copy and a change log. Corrections with one possible form are made by the script; Bob's corrections come with a worked example; what is the owner's to decide is proposed, not applied.</td></tr>
+      <tr><td><strong>E. Change existing code</strong></td><td><code>run.py edit &lt;code&gt; --out &lt;folder&gt; --report &lt;report&gt;</code></td><td>Clean-ups, renames, rules over many lines, splits into files, and <em>copies</em>: a new item made exactly like an existing one, wherever the model appears. The report accounts for every difference.</td></tr>
+      <tr><td><strong>A. Review a change</strong></td><td><code>run.py change &lt;before&gt; &lt;after&gt; --out &lt;review&gt;</code></td><td>A review written by the script: both versions in numbers, the change line by line, every difference for Bob to judge as intended, unintended or without effect, and the claims of the earlier reports checked.</td></tr>
+      <tr><td><strong>C. Diagnose</strong></td><td><code>run.py diagnose &lt;code&gt; --out &lt;report&gt;</code></td><td>From a symptom to the line: every line that names what the symptom involves, the scan hits on them, and each possible cause with its quoted line, shown, ruled out, or open with the test that decides it. Nothing is changed.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Two more commands help: <code>run.py status</code> lists every task started in the workspace and whether its gate passed, so Bob always knows which request it is answering, even after a long chat is summarized; <code>run.py look &lt;code&gt;</code> counts what the code holds.</p>
+</section>
+
+<section>
+  <h2>How a task runs</h2>
+  <ol>
+    <li><strong>First run.</strong> The script scans the code and writes a notes file next to the report: the facts to start from and the form to fill.</li>
+    <li><strong>Bob writes its judgement</strong> in the notes: decisions, corrections, a plan, causes. It never writes the report or the changed code itself.</li>
+    <li><strong>Next run.</strong> The script applies the notes, writes the report and the copy, compares the copy with the original, and lists what is still open.</li>
+    <li><strong>Repeat</strong> until the command prints <code>Gate: passed</code>. Then Bob gives the user the verdict, the counts and the gate line as printed.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>What the gates refuse</h2>
+  <ul>
+    <li>a scan hit left undecided, or a quote that is not on the line it cites;</li>
+    <li>a High finding with no correction and no specific question for the owner;</li>
+    <li>a change that adds a call, an operator, a string or a non-ASCII character without saying why;</li>
+    <li>a file left with half a block, or a requirement of the client's document left unaccounted for;</li>
+    <li>a removed comment that explains live code that stays;</li>
+    <li>a copy that still holds a name of its model in any letter case, reuses a name the code already has, is not a whole block, or keeps a style value that does not fit the new name;</li>
+    <li>a review with any difference left unjudged, and a diagnosis with no cause shown or open.</li>
+  </ul>
+  <p>A gate that passed means the work is complete and accounted for. It does not mean the code is right on the live system: the reports say what still needs a test there.</p>
+</section>
+
+<section>
+  <h2>Using it</h2>
+  <ol>
+    <li>Copy the skill folder into the workspace as <code>.bob/skills/code-review/</code>.</li>
+    <li>Add a short rule in <code>.bob/rules/</code> that tells Bob to use the skill before any review or change, to run its commands from the workspace root, and to run <code>status</code> before every reply.</li>
+    <li>Put each body of code in its own folder, with the documents that came with it.</li>
+    <li>Write each prompt in the same three parts: a first line that starts with the verb of the task and says what and where, then <code>Write &lt;report&gt;.</code>, then a <code>Do not ...</code> line. The verb picks the task: <em>Review</em> (code, or a change <em>against</em> its baseline), <em>Fix</em>, <em>Clean up / Standardize / Rename / Split / Add</em>, <em>Diagnose</em>. For example: <em>"Add the device NEW, modelled on the device OLD, to a copy of inputs/page.html under refactored/step-1. Write reports/add-device.md. Do not change inputs."</em></li>
+  </ol>
+  <div class="note">The skill sits with Bob's other building blocks: the requirement says <em>what</em>, Bob's rules hold the conventions that always apply, and the skill holds <em>how</em> and the checks that prove it. It can be shared across teams through the Bob Marketplace.</div>
+</section>
+
+<section>
+  <h2>In the pilot</h2>
+  <ul>
+    <li><strong>Policy and probe rules:</strong> five prompts, ten gates passed at the first attempt in one chat. <a href="./">Details</a>.</li>
+    <li><strong>Dashboard:</strong> three prompts, three gates passed at the first attempt, 7 to 10 minutes and 10 to 12 Bob coins per run. Runs give the same change; only the names Bob chooses for the new item may differ, unless the prompt gives them. <a href="dashboard.html">Details</a>.</li>
+  </ul>
+</section>
+
+<footer>
+  This page documents the skill's method and use. No client code, document or report is published here.
+</footer>
+</main>
+</body>
+</html>

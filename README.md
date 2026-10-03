@@ -5,6 +5,7 @@ A one-page description of a pilot use case: five prompts that take a Netcool Imp
 Two pages, published with GitHub Pages:
 
 - `index.html`: five prompts that review, fix, clean up, standardize and review Netcool Impact policies and probe rules;
+- `skill.html`: the generic code-review skill for IBM Bob: what it is, its five tasks, its gates, and how to use it;
 - `dashboard.html`: three prompts that add a device to a Netcool Impact dashboard exactly like an existing one, review the change, and debug a reported fault.
 
 The first page covers:
