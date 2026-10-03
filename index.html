@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IBM Bob on Netcool code</title>
+<meta name="description" content="Five prompts that take Netcool Impact policies and probe rules from defect register to reviewed, standardized code with IBM Bob.">
+<style>
+:root {
+  --bg: #ffffff; --surface: #f5f7fa; --text: #1b1f24; --muted: #57606a; --line: #d8dee4;
+  --accent: #0f62fe; --accent-soft: #e8f0ff; --ok: #1a7f37; --warn: #9a6700; --code-bg: #f0f2f5;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1117; --surface: #161b22; --text: #e6edf3; --muted: #9da7b3; --line: #30363d;
+    --accent: #78a9ff; --accent-soft: #1b2a44; --ok: #3fb950; --warn: #d29922; --code-bg: #1c2128;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1117; --surface: #161b22; --text: #e6edf3; --muted: #9da7b3; --line: #30363d;
+  --accent: #78a9ff; --accent-soft: #1b2a44; --ok: #3fb950; --warn: #d29922; --code-bg: #1c2128;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "IBM Plex Sans", Helvetica, Arial, sans-serif; }
+main { max-width: 920px; margin: 0 auto; padding: 40px 16px 80px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 32px; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 12px; }
+h2 { font-size: 1.35rem; margin: 44px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.05rem; margin: 24px 0 8px; }
+p, li { color: var(--text); }
+.lead { font-size: 1.1rem; color: var(--muted); margin: 0; }
+.meta { color: var(--muted); font-size: .9rem; margin-top: 12px; }
+a { color: var(--accent); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em;
+  background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; white-space: pre-wrap; font: .86rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.table-wrap { overflow-x: auto; margin: 12px 0 20px; }
+table { border-collapse: collapse; width: 100%; font-size: .94rem; }
+th, td { border-bottom: 1px solid var(--line); padding: 9px 10px; text-align: left; vertical-align: top; }
+th { background: var(--surface); font-weight: 600; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card h3 { margin-top: 0; }
+.prompt { border: 1px solid var(--line); border-radius: 10px; margin: 18px 0; overflow: hidden; }
+.prompt .head { background: var(--surface); padding: 12px 16px; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.prompt .num { background: var(--accent); color: #fff; border-radius: 999px; min-width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+.prompt .head strong { font-size: 1.05rem; }
+.prompt .body { padding: 4px 16px 14px; }
+.prompt pre { margin: 10px 0 6px; }
+.note { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
+.ok { color: var(--ok); font-weight: 600; }
+.warn { color: var(--warn); font-weight: 600; }
+footer { border-top: 1px solid var(--line); margin-top: 56px; padding-top: 16px; color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1>IBM Bob on Netcool code</h1>
+  <p class="lead">Five prompts that take a Netcool Impact policy and a set of Netcool probe rules from a defect register to fixed, cleaned, standardized and reviewed code, with IBM Bob in its built-in Agent mode.</p>
+  <p class="meta">Pilot use case for a telecom operator · 3 October 2026</p>
+</header>
+
+<section>
+  <h2>The use case</h2>
+  <p>Use case 5 of the pilot is <em>code analysis, standardization and optimization</em> for Netcool: Impact policies and probe rules that grew over years, with defects nobody has listed, commented-out code left in place, hard-coded paths and inconsistent names. The client sent two pieces of production code, each with its own document saying what the code should become:</p>
+  <div class="cards">
+    <div class="card"><h3>An Impact policy</h3><p>About 3,300 lines that build an incident ticket from an alarm and send it on. Its guide is the client's refactoring requirement document: defects to fix, logging and dead code to tidy, camelCase naming, and a three-tier modular structure.</p></div>
+    <div class="card"><h3>Probe rules</h3><p>About 1,900 lines of rules for one element manager, with ten lookup files. Its guide is the client's code standards document: no hard-coded values, paths through an environment variable, one log format, no commented-out code, and a standard directory tree.</p></div>
+  </div>
+  <p>Nothing here runs on an Impact server or on a probe. Everything the prompts claim is shown from the code alone, and every report says what still needs a test where the code runs.</p>
+</section>
+
+<section>
+  <h2>How it works</h2>
+  <p>Bob is opened on one workspace folder that holds both inputs, each in its own folder with its document. Two small things in that folder steer it:</p>
+  <div class="cards">
+    <div class="card"><h3>One skill: <code>code-review</code></h3><p>Instructions for five tasks (review code, fix, change existing code, review a change, diagnose) and a set of Python scripts that do the mechanical work. The skill is generic: it names no client, product or language.</p></div>
+    <div class="card"><h3>A short rule</h3><p>Tells Bob to use the skill before any review or change, to run its commands from the workspace root, and to check where the work stands before every reply.</p></div>
+  </div>
+  <h3>The scripts do the work, Bob does the judging</h3>
+  <p>Each task is one command, run twice or three times. The first run scans the code and writes a <em>notes file</em> with everything Bob has to decide. Bob reads the code and writes its judgements in that notes file: which scan hits are real defects, which corrections to make, what the client must decide. The next run applies the notes, writes the report and the changed copy, and compares the new version with the old one. The scripts write every report and every changed file; Bob never types code or reports by hand.</p>
+  <h3>Gates</h3>
+  <p>Every command ends with a line that starts <code>Gate:</code>. A task is finished only when it prints <code>Gate: passed</code>. A gate refuses, for example:</p>
+  <ul>
+    <li>a review where a scan hit was left undecided, or a quoted line is not on the line it cites;</li>
+    <li>a fix that leaves a High finding with no correction and no specific question for the client;</li>
+    <li>a change that adds a call, an operator or a non-ASCII character the original did not have, unless the reason is written down;</li>
+    <li>a change that leaves a file with half a block, or a requirement of the client's document unaccounted for;</li>
+    <li>a review of a change where any difference between the two versions has not been judged.</li>
+  </ul>
+  <p>A gate that passed means the work is complete and accounted for. It does not mean the code is right; that is what the reports and the last prompt are for.</p>
+  <h3>One chat for everything</h3>
+  <p>All five prompts go in one chat. Long chats get summarized by Bob on the way; a <code>status</code> command lets Bob see, from the files, which tasks are finished and which request it is answering, so it picks up where it was.</p>
+</section>
+
+<section>
+  <h2>The five prompts</h2>
+  <p>Each prompt does its step for the policy and then for the rules. Each step works on the output of the one before; the original files are never changed. The texts below are the prompts as sent, with the client's name replaced by "the client".</p>
+
+  <div class="prompt"><div class="head"><span class="num">1</span><strong>Defect register</strong><span>review, no change</span></div><div class="body">
+    <p>Bob scans and reads each file, decides each scan hit, adds what reading finds, and writes a register: every defect with its line, the quoted code, its effect on the ticket or the event, the fix, and how sure it is.</p>
+<pre>Review the policy in impact-policy/inputs and the rules file in probe-rules/inputs for defects, one after the other, each with the document from the client next to it as the guide.
+Write impact-policy/reports/defect-register.md and probe-rules/reports/defect-register.md, with the effect of each defect on the ticket for the policy and on the event for the rules.
+Do not change the policy or the rules file.</pre>
+  </div></div>
+
+  <div class="prompt"><div class="head"><span class="num">2</span><strong>Fix</strong><span>corrected copy and change log</span></div><div class="body">
+    <p>The script makes every correction that has only one possible form (a single <code>=</code> in a condition, a name missing its prefix, a misspelt field). Bob corrects what the code shows to be right and leaves every real choice to the client as a specific question. A correction that would hide a defect is held back as a proposal.</p>
+<pre>Fix the defects of the policy in a copy under impact-policy/refactored/step-1-fixed and the defects of the rules file in a copy under probe-rules/refactored/step-1-fixed, one after the other.
+Log the changes in impact-policy/reports/change-log.md and probe-rules/reports/change-log.md.
+Leave what is a decision for the client.</pre>
+  </div></div>
+
+  <div class="prompt"><div class="head"><span class="num">3</span><strong>Clean up</strong><span>commented-out code removed</span></div><div class="body">
+    <p>The script lists the commented-out code (lines switched off, disabled statements, whole blocks); Bob decides what goes, and the script removes it in a copy. The events and tickets stay the same.</p>
+<pre>Clean up a copy of each step-1-fixed, one after the other, keeping the ticket content and the events the same.
+Policy: in a copy of impact-policy/refactored/step-1-fixed under impact-policy/refactored/step-2-cleaned, remove the commented-out code as section 3 of the requirement document asks. Report in impact-policy/reports/clean-up.md.
+Rules: in a copy of probe-rules/refactored/step-1-fixed under probe-rules/refactored/step-2-cleaned, remove the commented-out code as standard 4 of the code standards document asks. Report in probe-rules/reports/clean-up.md.</pre>
+  </div></div>
+
+  <div class="prompt"><div class="head"><span class="num">4</span><strong>Standardize</strong><span>names and paths</span></div><div class="body">
+    <p>Policy: every local variable renamed to camelCase from the script's proposals, except names that another component may read or that may come from outside. Rules: the absolute path prefix replaced by an environment variable with one rule, so that nothing else in those lines can change.</p>
+<pre>Standardize a copy of each step-2-cleaned, one after the other, keeping the ticket content and the events the same.
+Policy: in a copy of impact-policy/refactored/step-2-cleaned under impact-policy/refactored/step-3-standardized, rename the variables to camelCase as section 3 of the requirement document asks. Report in impact-policy/reports/standards.md.
+Rules: in a copy of probe-rules/refactored/step-2-cleaned under probe-rules/refactored/step-3-standardized, replace the absolute path prefix /opt/IBM/tivoli/netcool/omnibus/etc/probes/rules with $NC_RULES_HOME in every include and table line, as standard 2 of the code standards document asks. Change only that prefix: every folder and file name after it stays as it is. Report in probe-rules/reports/standards.md.</pre>
+  </div></div>
+
+  <div class="prompt"><div class="head"><span class="num">5</span><strong>Code review</strong><span>the final copy against the original</span></div><div class="body">
+    <p>The script compares the final copy with the original and writes the review: both versions in numbers, the defect counts before and after, what the change consists of line by line, and every difference for Bob to judge as no change of behaviour, intended or unintended. Bob adds what reading finds, checks the claims of the earlier reports, and says what only the client can settle.</p>
+<pre>Review impact-policy/refactored/step-3-standardized against the original policy in impact-policy/inputs, and probe-rules/refactored/step-3-standardized against the original rules file in probe-rules/inputs, one after the other.
+Write impact-policy/reports/code-review.md and probe-rules/reports/code-review.md.
+Do not fix anything.</pre>
+  </div></div>
+
+  <div class="note">The client's documents also ask for more than these five prompts do: a split into a modular structure, merged database queries, rewritten log statements, and lookup files for hard-coded values. Those were tried and are kept aside: where Bob had to write new code itself, the result varied from run to run and was sometimes wrong while its gate passed. The five prompts above keep to what the scripts make reliable.</div>
+</section>
+
+<section>
+  <h2>What the rehearsals showed</h2>
+  <p>The prompts were rehearsed in Bob from a clean workspace, with nothing typed in the chat but the five prompts, and every step was checked by hand against the original before the next prompt was sent. A step counts as right only when its gates passed <em>and</em> the changed copy held when read line by line.</p>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>Run</th><th>What happened</th><th>What changed after it</th></tr></thead>
+    <tbody>
+      <tr><td>First run, full scope</td><td>Register and fix usable. The clean-up needed three follow-up messages. The split into modules passed its gate and was wrong for both inputs: blocks cut in two between files, the order of running changed, files left behind.</td><td>A fix can no longer pass with its notes untouched; a change must account for each requirement of the client's document; a file left with half a block cannot be explained away. The split, the log rewrite and the lookup files were taken out of the five prompts.</td></tr>
+      <tr><td>Clean run 1</td><td>Prompts 1 to 4 passed their gates at the first attempt. Checked by hand, the rules standardization had changed folder names while replacing the path prefix and left some absolute paths.</td><td>Prompt 4 asks the rules for the prefix alone, done by one rule, so that nothing else in those lines can change.</td></tr>
+      <tr><td>Clean run 2</td><td><span class="ok">All ten gates passed at the first attempt</span>, about 30 minutes and 30 Bob coins, one click on "Continue Task". Prompts 1 to 4 held when checked by hand. Prompt 5's reviews passed their gate but were thin and written by hand.</td><td>The review of a change is now written by the script like every other report: both versions in numbers, the change line by line, every difference to judge, the claims of the earlier reports checked. Names the code reads before it sets them are no longer renamed.</td></tr>
+      <tr><td>Dry run</td><td>All five prompts with an agent in Bob's place, on a clean copy: all ten gates passed with no fault in the scripts.</td><td>The review now tells a rename from a correction, and the list of commented-out code is more complete.</td></tr>
+      <tr><td>Clean run 3</td><td><span class="ok">All ten gates passed at the first attempt</span>, 54 Bob coins, one click on "Continue Task"; prompts 2 to 5 took one hour. Checked by hand, the code held: every correction, removal, path change and rename was right, with one exception: the clean-up removed four comments that explain live code (the events are unchanged). Bob's own words were wrong in places: a correction tagged with the wrong finding, and in the final reviews a wrong reason, a miscounted list and a question that calls a proposed change done.</td><td>The clean-up refuses to remove a comment that stands right above a live line that stays. The review lists each removed comment that is not code on its own, with the line it explained, and no longer counts a merge of two names, or a name that only gained its prefix, as a rename. A correction that names the wrong finding is refused.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>What the rehearsals teach</h3>
+  <ul>
+    <li><strong>Where a script makes the change, the result is the same and right every time.</strong> Corrections that have one possible form, removal of the commented-out code the script listed, renames from the script's proposals, one rule for a path prefix.</li>
+    <li><strong>Where Bob writes new code itself, the result varies from run to run</strong> and was sometimes wrong while its gate passed: rewritten log lines, new lookup files, a split into modules. Those are kept out of the five prompts until they hold.</li>
+    <li><strong>A gate is necessary, not sufficient.</strong> It proves the work is complete and accounted for, not that it is right. Read each step's report and diff before sending the next prompt.</li>
+    <li><strong>Read what Bob writes in its own words.</strong> The scripts check every line of code and every count they produce; they cannot check a reason, a question or a number Bob types into a review. Those were wrong in places, so the reviews are read before they are presented.</li>
+    <li><strong>Leave the client's decisions to the client.</strong> When the review leaves a finding to the owner, the fix lists its correction as a proposal with a specific question instead of applying it.</li>
+    <li><strong>Long chats need a way back.</strong> Bob summarizes a long chat on the way; the <code>status</code> command lets it see from the files which tasks are done and which request it is answering.</li>
+    <li><strong>Plan for the turn limit.</strong> Five prompts on two inputs take more than Bob's default 100 turns per task; raise the limit before the session or be ready to click "Continue Task".</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Running it</h2>
+  <ol>
+    <li>Open the workspace folder itself in IBM Bob, not its parent.</li>
+    <li>In Bob's settings, raise the limit on the number of turns of a task above its default of 100; the five prompts in one chat need more.</li>
+    <li>Start a new chat in the built-in <strong>Agent</strong> mode and send the five prompts in order, one after the other, and nothing else.</li>
+    <li>After each prompt, Bob's commands should have printed <code>Gate: passed</code> twice, once for each input. Read the reports before sending the next prompt.</li>
+  </ol>
+</section>
+
+<footer>
+  This page describes the method and the prompts only. The client's code, documents and the reports made from them are not published here.
+</footer>
+</main>
+</body>
+</html>

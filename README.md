@@ -1,0 +1,13 @@
+# IBM Bob on Netcool code
+
+A one-page description of a pilot use case: five prompts that take a Netcool Impact policy and a set of Netcool probe rules from a defect register to fixed, cleaned, standardized and reviewed code, with IBM Bob in its built-in Agent mode.
+
+The page is `index.html`, published with GitHub Pages. It covers:
+
+- the use case and the two pieces of code it works on;
+- how Bob is steered: one skill with scripts that do the mechanical work, a short workspace rule, and a gate at the end of every command;
+- each of the five prompts, what it does, and its full text;
+- what the rehearsals showed, and what was left out of the five prompts and why;
+- how to run it.
+
+This repository holds the description only. The client's code, documents and the reports made from them are not published here.
