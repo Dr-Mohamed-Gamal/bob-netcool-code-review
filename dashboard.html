@@ -62,7 +62,7 @@ footer { border-top: 1px solid var(--line); margin-top: 56px; padding-top: 16px;
 <header>
   <p class="meta"><a href="./">IBM Bob on Netcool code</a> · second use case · <a href="skill.html">the skill</a></p>
   <h1>Adding a device to a Netcool dashboard</h1>
-  <p class="lead">Three prompts that let IBM Bob add a new device to an existing Netcool Impact dashboard with exactly the same tiles, filters and selection as the devices already on it, review that change, and debug a fault reported on the dashboard.</p>
+  <p class="lead">Prompts that let IBM Bob add a new device to an existing Netcool Impact dashboard with exactly the same tiles, filters and selection as the devices already on it, review that change, fix what the review finds and review the fix, and, apart from that sequence, debug a fault reported on the dashboard.</p>
   <p class="meta">Pilot use case for a telecom operator · 3 October 2026</p>
 </header>
 
@@ -117,8 +117,8 @@ why: the owner asks for the device SW2, with the same tiles, filters and selecti
 </section>
 
 <section>
-  <h2>The three prompts</h2>
-  <p>The names in angle brackets are filled in for the device being added and the fault being reported.</p>
+  <h2>The prompts</h2>
+  <p>A closed loop of four prompts: add, review, fix, review the fix. Prompts 3 and 4 are repeated until the review is clean; when the review finds nothing, the fix passes at once without changing anything. Debugging is a separate prompt, used whenever a fault is reported. The names in angle brackets are filled in for the device being added and the fault being reported.</p>
 
   <div class="prompt"><div class="head"><span class="num">1</span><strong>Add the device</strong><span>a copy, under names of its own</span></div><div class="body">
 <pre>Add the device &lt;NEW DEVICE&gt;, with DeviceType '&lt;NEW DEVICE&gt;', modelled on the &lt;MODEL&gt; device, to a copy of inputs/&lt;page&gt;.html under refactored/step-1-device-added: the same tiles, filters and selection, under names of its own.
@@ -132,17 +132,23 @@ Write reports/code-review.md.
 Do not fix anything.</pre>
   </div></div>
 
-  <div class="prompt"><div class="head"><span class="num">3</span><strong>Debug</strong><span>from a symptom to the line</span></div><div class="body">
-<pre>Diagnose inputs/&lt;page&gt;.html: the &lt;DEVICE&gt; tiles open the alarms of &lt;OTHER DEVICE&gt; instead of those of &lt;DEVICE&gt;.
-Write reports/diagnosis.md.
-Do not fix anything.</pre>
-  </div></div>
   <p>Every prompt has the same three parts: a first line that starts with the verb of the task (Add, Review, Diagnose, Fix) and says what and where; <code>Write</code> and the report; <code>Do not</code> and the limit. The verb tells Bob which task of the skill to run, so it starts at once.</p>
-  <div class="prompt"><div class="head"><span class="num">4</span><strong>Fix the findings</strong><span>only when the review found defects</span></div><div class="body">
+  <div class="prompt"><div class="head"><span class="num">3</span><strong>Fix</strong><span>the findings of the review</span></div><div class="body">
 <pre>Fix the findings of reports/code-review.md in a copy of refactored/step-1-device-added under refactored/step-2-fixed.
 Write reports/change-log.md.
 Do not decide what is the client's to decide.</pre>
-    <p>Followed by prompt 2 again on <code>step-2-fixed</code>, until the review is clean.</p>
+  </div></div>
+
+  <div class="prompt"><div class="head"><span class="num">4</span><strong>Review the fix</strong><span>the fixed copy against the original</span></div><div class="body">
+<pre>Review refactored/step-2-fixed against inputs/&lt;page&gt;.html.
+Write reports/code-review-2.md.
+Do not fix anything.</pre>
+  </div></div>
+
+  <div class="prompt"><div class="head"><span class="num">5</span><strong>Debug</strong><span>separate: from a reported symptom to the line</span></div><div class="body">
+<pre>Diagnose inputs/&lt;page&gt;.html: the &lt;DEVICE&gt; tiles open the alarms of &lt;OTHER DEVICE&gt; instead of those of &lt;DEVICE&gt;.
+Write reports/diagnosis.md.
+Do not fix anything.</pre>
   </div></div>
   <div class="note">Short prompts keep the run short and cheap in Bob coins. The model device should be one whose names are its own; the review step shows anything the copy shares with other devices.</div>
 </section>
@@ -164,7 +170,7 @@ Do not decide what is the client's to decide.</pre>
     <thead><tr><th>Run</th><th>Result</th></tr></thead>
     <tbody>
       <tr><td>First run</td><td>The copy was right, and Bob noticed by itself that each tile's margin follows the length of its device's label. It also showed what to tighten: the prompt's wording let the copy land in the wrong folder, a second copy block for the same device was not refused, and Bob chose a margin no other row uses. Each became a check in the skill.</td></tr>
-      <tr><td>Standardized prompts</td><td><span class="ok">All three gates passed at the first attempt</span>, in one new chat: about 7 minutes and 12 Bob coins. Bob picked the task from the first word of each prompt. The copy was again exactly the new row and its two select lines, with the right margin; the gate refused Bob's first, incomplete plan and named what was missing, and Bob completed it at once. The diagnosis showed the cause on the three lines of the tiles.</td></tr>
+      <tr><td>Standardized prompts, full loop</td><td><span class="ok">All five gates passed at the first attempt</span> (add, review, debug, fix, review the fix), in one new chat: 12 minutes and 15 Bob coins. The review found nothing to fix, so the fix passed in seconds with the copy unchanged, and the second review confirmed it. Earlier in the same chat, the three first prompts took about 7 minutes and 12 Bob coins. Bob picked the task from the first word of each prompt. The copy was again exactly the new row and its two select lines, with the right margin; the gate refused Bob's first, incomplete plan and named what was missing, and Bob completed it at once. The diagnosis showed the cause on the three lines of the tiles.</td></tr>
       <tr><td>Clean run</td><td><span class="ok">All three gates passed at the first attempt</span>, in one chat with nothing typed but the three prompts: about 10 minutes and 10 Bob coins. Checked by hand: the copy added exactly the new row and its two select lines, with its own filter names and the margin the page uses for labels of that length, and changed nothing else; the review listed exactly those lines; the diagnosis showed the cause on its line and left the owner's question open.</td></tr>
     </tbody>
   </table></div>
