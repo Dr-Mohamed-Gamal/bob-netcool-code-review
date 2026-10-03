@@ -1,6 +1,6 @@
 # Use Case 1 — New Integration: from MIBs to Probe Rules
 
-Three prompts that let IBM Bob integrate a new device into Netcool from what an integration team receives — a trap list and the vendors' MIBs — into a checked catalogue of every trap, the probe rules and lookups in the operator's own folder tree, and a review that sends a test trap of every kind through the rules. Bob uses the [trap-rules skill](https://github.com/Dr-Mohamed-Gamal/bob-trap-rules-skill), a second generic skill made for this use case.
+Three prompts that let IBM Bob integrate a new device into Netcool from what an integration team receives — a trap list and the vendors' MIBs — into a checked catalogue of every trap, the probe rules and lookups in the operator's own folder tree, and a review that sends a test trap of every kind through the rules. Bob uses the [trap-rules skill](../SKILLS/trap-rules/), a second generic skill made for this use case.
 
 > Pilot use case for a telecom operator. The operator's trap list, MIB set, business requirement, rules and reports are not published here: this page describes the inputs, the method and the prompts.
 

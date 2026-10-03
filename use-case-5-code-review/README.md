@@ -1,6 +1,6 @@
 # Use Case 5 — Code Analysis, Standardization and Optimization
 
-Five prompts that take a production Netcool Impact policy and a production probe rules file from a defect register to fixed, cleaned, standardized and reviewed code, with IBM Bob in its built-in Agent mode and the [code-review skill](https://github.com/Dr-Mohamed-Gamal/bob-code-review-skill).
+Five prompts that take a production Netcool Impact policy and a production probe rules file from a defect register to fixed, cleaned, standardized and reviewed code, with IBM Bob in its built-in Agent mode and the [code-review skill](../SKILLS/code-review/).
 
 > Pilot use case for a telecom operator. The operator's code, documents and reports are not published here: this page describes the inputs, the method and the prompts.
 

@@ -1,6 +1,6 @@
 # Use Case 3 — Add a Device to a Dashboard, and Debug It
 
-Prompts that let IBM Bob add a new device to an existing Netcool Impact dashboard with exactly the same tiles, filters and selection as the devices already on it, review that change, fix what the review finds and review the fix, and, apart from that loop, trace a fault reported on the dashboard to its line. Bob uses the same generic [code-review skill](https://github.com/Dr-Mohamed-Gamal/bob-code-review-skill) as in [use case 5](../use-case-5-code-review/).
+Prompts that let IBM Bob add a new device to an existing Netcool Impact dashboard with exactly the same tiles, filters and selection as the devices already on it, review that change, fix what the review finds and review the fix, and, apart from that loop, trace a fault reported on the dashboard to its line. Bob uses the same generic [code-review skill](../SKILLS/code-review/) as in [use case 5](../use-case-5-code-review/).
 
 > Pilot use case for a telecom operator. The operator's page, device names and reports are not published here: this page describes the inputs, the method and the prompts.
 

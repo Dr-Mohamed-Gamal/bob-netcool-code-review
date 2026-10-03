@@ -36,8 +36,10 @@ Every prompt has the same three parts: the verb of the task and what it works on
 
 | Skill | Used in | What it covers |
 |---|---|---|
-| [bob-code-review-skill](https://github.com/Dr-Mohamed-Gamal/bob-code-review-skill) | Use cases 3 and 5 | Review code, fix findings, change existing code (clean-ups, renames, rules over many lines, splits, copies), review a change, diagnose a failure — in any language |
-| [bob-trap-rules-skill](https://github.com/Dr-Mohamed-Gamal/bob-trap-rules-skill) | Use case 1 | Catalogue a trap list against MIBs, generate the rules and lookups of an SNMP trap probe, review them with a rules simulator |
+| [SKILLS/code-review](SKILLS/code-review/) | Use cases 3 and 5 | Review code, fix findings, change existing code (clean-ups, renames, rules over many lines, splits, copies), review a change, diagnose a failure — in any language |
+| [SKILLS/trap-rules](SKILLS/trap-rules/) | Use case 1 | Catalogue a trap list against MIBs, generate the rules and lookups of an SNMP trap probe, review them with a rules simulator |
+
+Each skill folder follows the Bob marketplace layout: `README.md` (the listing), `SKILL.md` (what Bob loads), `scripts/` (the work) and `tests/`. Install one by copying its folder into a workspace's `.bob/skills/`, or clone its own repository: [bob-code-review-skill](https://github.com/Dr-Mohamed-Gamal/bob-code-review-skill), [bob-trap-rules-skill](https://github.com/Dr-Mohamed-Gamal/bob-trap-rules-skill).
 
 Both skills are generic: they name no client, and they take a project's rules from the documents placed next to its inputs.
 
@@ -46,6 +48,17 @@ Both skills are generic: they name no client, and they take a project's rules fr
 ```
 bob-netcool-code-review/
 ├── README.md                              # this overview
+├── SKILLS/                                # the two skills, in the Bob marketplace layout
+│   ├── code-review/                       # use cases 3 and 5
+│   │   ├── README.md                      #   the listing: what it does, when to use it, install
+│   │   ├── SKILL.md                       #   what Bob loads: tasks, rules and gates
+│   │   ├── scripts/                       #   run.py and the scripts that do the work
+│   │   └── tests/                         #   669 tests on small synthetic samples
+│   └── trap-rules/                        # use case 1
+│       ├── README.md
+│       ├── SKILL.md
+│       ├── scripts/                       #   MIB and workbook readers, catalogue, generator, review, simulator
+│       └── tests/                         #   48 tests on synthetic MIBs and trap lists
 ├── use-case-1-new-integration/
 │   ├── README.md                          # the inputs and why, the method, every prompt in detail, results
 │   └── prompts/
@@ -69,7 +82,7 @@ bob-netcool-code-review/
 │       ├── 03-clean-up.md
 │       ├── 04-standardize.md
 │       └── 05-code-review.md
-└── index.html, dashboard.html, integration.html, skill.html   # the same content as web pages
+└── index.html, dashboard.html, integration.html   # the same use cases as web pages
 ```
 
 Each prompt file holds the prompt to copy and, under it, what the prompt reads, what the scripts do, what Bob decides, what the gate refuses, what it writes, and why its words are chosen.
