@@ -140,17 +140,26 @@ Do not fix anything.</pre>
 </section>
 
 <section>
-  <h2>What was checked before running it in Bob</h2>
+  <h2>What was checked, and the run in Bob</h2>
   <div class="table-wrap"><table>
     <thead><tr><th>Step</th><th>Result of the dry run on the operator's dashboard</th></tr></thead>
     <tbody>
       <tr><td>Add the device</td><td><span class="ok">Gate passed.</span> One copy wrote 10 lines: the new row after the model's row, and the new device in both select lists right after the model. Nothing else in the page differs. A block one line short at either end was refused with the exact reason, and every device row of the page counts as a whole block, so any of them can be the model.</td></tr>
       <tr><td>Review the change</td><td><span class="ok">Gate passed.</span> The review lists exactly the 10 added lines and the strings and calls they repeat: 14 differences, all intended. An earlier version of the review lined up the near-identical select-list lines wrongly and reported 25 false rewrites; it now keeps strings in the alignment.</td></tr>
       <tr><td>Debug</td><td><span class="ok">Gate passed</span> on a fault found in the dashboard itself: the lines that name the two devices were listed, and the cause was shown on its line. A quote that was not on its line was refused.</td></tr>
-      <tr><td>The skill</td><td>662 automated tests pass, including new ones for the copy, the whole-block check, web pages and the diagnosis.</td></tr>
+      <tr><td>The skill</td><td>666 automated tests pass, including new ones for the copy, the whole-block check, web pages and the diagnosis.</td></tr>
     </tbody>
   </table></div>
-  <p>Still to come: the run in Bob itself, and the counts of the new device on a live system, which need the Impact policy and the page's scripts to know its DeviceType.</p>
+
+  <h3>The run in Bob</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Run</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>First run</td><td>The copy was right, and Bob noticed by itself that each tile's margin follows the length of its device's label. It also showed what to tighten: the prompt's wording let the copy land in the wrong folder, a second copy block for the same device was not refused, and Bob chose a margin no other row uses. Each became a check in the skill.</td></tr>
+      <tr><td>Clean run</td><td><span class="ok">All three gates passed at the first attempt</span>, in one chat with nothing typed but the three prompts: about 10 minutes and 10 Bob coins. Checked by hand: the copy added exactly the new row and its two select lines, with its own filter names and the margin the page uses for labels of that length, and changed nothing else; the review listed exactly those lines; the diagnosis showed the cause on its line and left the owner's question open.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Still to come: the counts of the new device on a live system, which need the Impact policy and the page's scripts to know its DeviceType.</p>
 </section>
 
 <section>
