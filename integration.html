@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Netcool Trap Integration</title>
+<meta name="description" content="IBM Bob prompts and a skill that turn a device's trap list and its vendors' MIBs into Netcool probe rules: a catalogue, the rules, and a review with a simulator.">
+<style>
+:root {
+  --bg: #ffffff; --surface: #f5f7fa; --text: #1b1f24; --muted: #57606a; --line: #d8dee4;
+  --accent: #0f62fe; --accent-soft: #e8f0ff; --ok: #1a7f37; --warn: #9a6700; --code-bg: #f0f2f5;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1117; --surface: #161b22; --text: #e6edf3; --muted: #9da7b3; --line: #30363d;
+    --accent: #78a9ff; --accent-soft: #1b2a44; --ok: #3fb950; --warn: #d29922; --code-bg: #1c2128;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1117; --surface: #161b22; --text: #e6edf3; --muted: #9da7b3; --line: #30363d;
+  --accent: #78a9ff; --accent-soft: #1b2a44; --ok: #3fb950; --warn: #d29922; --code-bg: #1c2128;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "IBM Plex Sans", Helvetica, Arial, sans-serif; }
+main { max-width: 920px; margin: 0 auto; padding: 40px 16px 80px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 32px; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 12px; }
+h2 { font-size: 1.35rem; margin: 44px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.05rem; margin: 24px 0 8px; }
+p, li { color: var(--text); }
+.lead { font-size: 1.1rem; color: var(--muted); margin: 0; }
+.meta { color: var(--muted); font-size: .9rem; margin-top: 12px; }
+a { color: var(--accent); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em;
+  background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; white-space: pre-wrap; font: .86rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.table-wrap { overflow-x: auto; margin: 12px 0 20px; }
+table { border-collapse: collapse; width: 100%; font-size: .94rem; }
+th, td { border-bottom: 1px solid var(--line); padding: 9px 10px; text-align: left; vertical-align: top; }
+th { background: var(--surface); font-weight: 600; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card h3 { margin-top: 0; }
+.prompt { border: 1px solid var(--line); border-radius: 10px; margin: 18px 0; overflow: hidden; }
+.prompt .head { background: var(--surface); padding: 12px 16px; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.prompt .num { background: var(--accent); color: #fff; border-radius: 999px; min-width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+.prompt .head strong { font-size: 1.05rem; }
+.prompt .body { padding: 4px 16px 14px; }
+.prompt pre { margin: 10px 0 6px; }
+.note { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
+.ok { color: var(--ok); font-weight: 600; }
+.warn { color: var(--warn); font-weight: 600; }
+footer { border-top: 1px solid var(--line); margin-top: 56px; padding-top: 16px; color: var(--muted); font-size: .9rem; }
+</style>
+
+</head>
+<body>
+<main>
+
+<header>
+  <p class="meta"><a href="./">IBM Bob on Netcool code</a> · third use case · <a href="https://github.com/Dr-Mohamed-Gamal/bob-trap-rules-skill">the skill</a></p>
+  <h1>A new device integration: from MIBs to probe rules</h1>
+  <p class="lead">Prompts that let IBM Bob integrate a new device into Netcool from what an integration team receives, a trap list and the vendors' MIBs: a catalogue of every trap, the probe rules and lookups in the operator's folder tree, and a review that sends a test trap of every kind through the rules.</p>
+  <p class="meta">Pilot use case for a telecom operator · 3 October 2026</p>
+</header>
+
+<section>
+  <h2>The use case</h2>
+  <p>A new network platform comes into service: a cluster of appliances with their management servers, switches and servers. Its alarms must reach Netcool. The integration team receives a business requirement, a spreadsheet of the traps in scope (one sheet per component, with severities and the event text the vendor recommends), and a zip of vendor MIBs. From those, an engineer writes the rules of the SNMP trap probe: one case per trap, the fields of each event, and which trap clears which. This is the largest part of an integration, and it is done by hand.</p>
+  <p>The request: Bob should generate those rules from the MIBs and the trap list, following the operator's own coding standard for rules files (the same standard as in the first use case: a fixed folder tree, every path through <code>$NC_RULES_HOME</code>, data in lookups rather than in conditions, one log format, no commented-out code).</p>
+</section>
+
+<section>
+  <h2>Why not let Bob write the rules freely</h2>
+  <p>A trap list and a set of MIBs disagree in many small ways, and a rules file written by hand carries those disagreements into production, where they show as alarms that never clear, or clear the wrong problem, or say nothing useful. On the operator's real inputs the skill found, among others:</p>
+  <ul>
+    <li>OIDs with a typo, and rows whose name points to one MIB trap while their OID and description point to another;</li>
+    <li>traps named differently from the MIB, and traps no supplied MIB defines;</li>
+    <li>the same trap listed in two sheets with two different severities;</li>
+    <li>alarms that do not arrive as traps of their own, but inside one trap of the management server, with the alarm's number hidden in the index of its variables;</li>
+    <li>event texts that name a variable the trap does not have, or the wrong one of its variables;</li>
+    <li>servers that signal a recovery with the same trap and a value of one variable, rather than with a clearing trap.</li>
+  </ul>
+  <p>None of these is visible in a rules file that loads without errors. So the rules are written by scripts, and Bob decides only what needs reading and judgement.</p>
+</section>
+
+<section>
+  <h2>How it works</h2>
+  <p>A second skill for Bob, <code>trap-rules</code>, generic like the first: any trap list (a spreadsheet or a CSV with a name and an OID column), any SMIv1 or SMIv2 MIBs, and the folder tree of the standards document in the workspace. It has three tasks, each a command that ends with a gate.</p>
+  <div class="cards">
+    <div class="card"><h3>1 · Catalogue</h3><p>The script reads every sheet and every MIB, matches each row to a MIB trap by OID and by name, and writes one block per open decision, each with its facts and a proposal. Bob decides; the script writes the catalogue.</p></div>
+    <div class="card"><h3>2 · Generate</h3><p>From the catalogue, the script proposes every trap's AlertKey and Summary and flags the texts that disagree with the MIB. Bob decides; the script writes the rules folder and its lookups, then checks them.</p></div>
+    <div class="card"><h3>3 · Review</h3><p>A check of the rules against the catalogue that does not trust how they were made, and a small rules interpreter that sends one test trap of every kind through them and replays every problem with its clear.</p></div>
+  </div>
+  <h3>What Bob decides</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Decision</th><th>What the script gives Bob</th></tr></thead>
+    <tbody>
+      <tr><td>A row that disagrees with the MIB</td><td>The row, the MIB trap at its OID, the MIB trap with its name, and which description matches</td></tr>
+      <tr><td>A trap no MIB defines</td><td>Keep it from the sheet, or drop it; the report asks the owner for the MIB</td></tr>
+      <tr><td>Severities</td><td>Each severity word of the sheet, with a proposed number and type; each trap listed with two severities</td></tr>
+      <tr><td>Alarms inside another trap</td><td>The MIB trap whose variables are indexed by an alarm number, and the trap that clears them</td></tr>
+      <tr><td>Which trap clears which</td><td>Groups found by name, problems with no clear, and the variable values the MIB defines as a recovery</td></tr>
+      <tr><td>Key and summary</td><td>A proposal for every trap, from the sheet's text or the MIB; the texts that name a variable the trap does not have</td></tr>
+    </tbody>
+  </table></div>
+  <h3>What the scripts write</h3>
+<pre>rules/&lt;name&gt;/
+├── &lt;name&gt;.master.rules                    entry point: dispatch by trap, then the fields
+├── config/&lt;name&gt;.master.include.rules     every table declaration
+├── config/&lt;name&gt;.common.constants.rules   values every event starts from
+├── transformation_rules/&lt;vendor&gt;.rules     one case per trap: variables named, @AlertKey, @Summary
+├── transformation_rules/field_normalization.rules   severity, type, group, expiry from the lookup; @Identifier
+└── lookups/
+    ├── probe_specific/&lt;name&gt;_traps.lookup       event id -> name, agent, group, severity, type, expiry, flags
+    ├── probe_specific/&lt;name&gt;_alarm_ids.lookup   alarm number -> event id, alarm name
+    └── constants/field_normalization.constant.rules   value maps of enumerated variables</pre>
+  <p>Every value that is data lives in a lookup, as the standard asks. The alarms that arrive inside the management server's trap are fully data-driven: the rules take the alarm's number from the index of its variables, and one lookup gives everything else.</p>
+</section>
+
+<section>
+  <h2>The prompts</h2>
+  <p>Three prompts, in the same three-part form as the other use cases: the verb and what, <code>Write</code> and the report, <code>Do not</code> and the limit. A fix and a second review follow only when the review finds something; a fix changes a decision and generates again, never the rules by hand.</p>
+  <div class="prompt"><div class="head"><span class="num">1</span><strong>Catalogue</strong><span>the trap list against the MIBs</span></div><div class="body">
+<pre>Catalogue the traps of inputs/&lt;trap list&gt;.xlsx against the MIBs in inputs/mibs.
+Write reports/trap-catalogue.md.
+Do not write any rules.</pre>
+  </div></div>
+  <div class="prompt"><div class="head"><span class="num">2</span><strong>Generate</strong><span>the rules, in the operator's folder tree</span></div><div class="body">
+<pre>Generate the rules for reports/trap-catalogue.md under rules/, following inputs/&lt;standards&gt;.txt.
+Write reports/rules-generated.md.
+Do not decide what is the client's to decide.</pre>
+  </div></div>
+  <div class="prompt"><div class="head"><span class="num">3</span><strong>Review</strong><span>the rules against the catalogue, with the simulator</span></div><div class="body">
+<pre>Review rules/ against reports/trap-catalogue.md.
+Write reports/rules-review.md.
+Do not fix anything.</pre>
+  </div></div>
+</section>
+
+<section>
+  <h2>What was checked, and the run in Bob</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Step</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>The inputs</td><td>The operator's trap list (seven sheets: the service-impacting alarms, all application traps, the management server's alarm format, server resource thresholds, switch, and two server hardware vendors) and 63 MIB files: 2,116 trap definitions read, every one placed. The catalogue holds 174 traps and 165 alarm numbers.</td></tr>
+      <tr><td>Before Bob: a stand-in</td><td>An AI agent standing in for Bob, reading only the workspace rule and the skill, ran the three prompts and reported what was unclear. Its most serious point: two different clear groups could be given the same AlertGroup, so a clear of one would close the other's problem. The gate and the simulator now refuse it; nine smaller points were fixed the same way.</td></tr>
+      <tr><td>The review</td><td>Eleven defects planted in a copy of the rules (a changed severity, a missing case, an absolute path, a problem and clear with different keys, a variable the trap does not have, commented-out code, a log line without the node, an unset variable, a wrong clear value, an open brace, a missing alarm number) were all found.</td></tr>
+      <tr><td>First prompt in Bob</td><td>The gate passed in a minute, but Bob had accepted every proposal, so the judgement calls were missing: threshold objects left without a trap, a power-off with no clear, a cold start that would never clear. The lesson: <strong>a gate is only as good as the proposals Bob accepts</strong>. The scripts now propose those judgements themselves, and leave a block open only where Bob must write something.</td></tr>
+      <tr><td>Clean run</td><td><span class="ok">All three gates passed at the first attempt</span>, in one new chat with nothing typed but the three prompts: about three and a half minutes and 2.18 Bob coins. The catalogue was identical to the one the proposals give; Bob wrote the two summaries it had to write; 13 rules files with 174 cases; the review found nothing, with 172 test traps, 165 test alarms and 54 problem/clear pairs replayed in the simulator.</td></tr>
+      <tr><td>The skill</td><td>48 automated tests on small synthetic MIBs and trap lists.</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Questions the run leaves for the operator</h3>
+  <p>Each report ends with the questions only the operator can answer, for example: which domain folder the rules belong in; whether alarms forwarded by the management server keep the server as their node; whose severity wins when the trap list and the alarm disagree; the MIBs not supplied; the traps listed with two severities; and the problems that have no clear and would stay open.</p>
+  <p>Still to come: loading the rules in a test probe and sending a test trap of each kind, which needs the operator's environment.</p>
+</section>
+
+<section>
+  <h2>Running it</h2>
+  <ol>
+    <li>Open the integration's workspace folder in IBM Bob. It holds the trap list, the MIBs and the standards document under <code>inputs/</code>, and the skill under <code>.bob/</code>.</li>
+    <li>Start a new chat in the built-in <strong>Agent</strong> mode and send the prompts in order.</li>
+    <li>After each prompt, Bob's command should end with <code>Gate: passed</code>. Read the report it names, and its questions for the owner, before sending the next one.</li>
+    <li>Before production: load the rules in a test probe, check the syntax with <code>nco_p_syntax</code>, and send a test trap of each kind.</li>
+  </ol>
+</section>
+
+<footer>
+  This page describes the method and the prompts only. The operator's trap list, MIB set, rules and reports are not published here.
+</footer>
+</main>
+</body>
+</html>

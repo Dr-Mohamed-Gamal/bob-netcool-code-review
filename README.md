@@ -1,12 +1,13 @@
 # IBM Bob on Netcool code
 
-A one-page description of a pilot use case: five prompts that take a Netcool Impact policy and a set of Netcool probe rules from a defect register to fixed, cleaned, standardized and reviewed code, with IBM Bob in its built-in Agent mode.
+Pages describing three pilot use cases of IBM Bob, in its built-in Agent mode, on Netcool code: reviewing, fixing and standardizing existing code; adding a device to a dashboard; and integrating a new device from its MIBs.
 
-Two pages, published with GitHub Pages:
+The pages, published with GitHub Pages:
 
 - `index.html`: five prompts that review, fix, clean up, standardize and review Netcool Impact policies and probe rules;
 - `skill.html`: the generic code-review skill for IBM Bob: what it is, its five tasks, its gates, and how to use it;
-- `dashboard.html`: three prompts that add a device to a Netcool Impact dashboard exactly like an existing one, review the change, and debug a reported fault.
+- `dashboard.html`: three prompts that add a device to a Netcool Impact dashboard exactly like an existing one, review the change, and debug a reported fault;
+- `integration.html`: three prompts that turn a device's trap list and its vendors' MIBs into probe rules and lookups in the operator's folder tree, and review them with a rules simulator (skill: [bob-trap-rules-skill](https://github.com/Dr-Mohamed-Gamal/bob-trap-rules-skill)).
 
 The first page covers:
 
