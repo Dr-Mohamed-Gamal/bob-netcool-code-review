@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Netcool Dashboard Device</title>
+<meta name="description" content="Three IBM Bob prompts that add a device to a Netcool Impact dashboard exactly like an existing one, review the change, and debug a reported fault.">
+<style>
+:root {
+  --bg: #ffffff; --surface: #f5f7fa; --text: #1b1f24; --muted: #57606a; --line: #d8dee4;
+  --accent: #0f62fe; --accent-soft: #e8f0ff; --ok: #1a7f37; --warn: #9a6700; --code-bg: #f0f2f5;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1117; --surface: #161b22; --text: #e6edf3; --muted: #9da7b3; --line: #30363d;
+    --accent: #78a9ff; --accent-soft: #1b2a44; --ok: #3fb950; --warn: #d29922; --code-bg: #1c2128;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1117; --surface: #161b22; --text: #e6edf3; --muted: #9da7b3; --line: #30363d;
+  --accent: #78a9ff; --accent-soft: #1b2a44; --ok: #3fb950; --warn: #d29922; --code-bg: #1c2128;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "IBM Plex Sans", Helvetica, Arial, sans-serif; }
+main { max-width: 920px; margin: 0 auto; padding: 40px 16px 80px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 32px; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 12px; }
+h2 { font-size: 1.35rem; margin: 44px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.05rem; margin: 24px 0 8px; }
+p, li { color: var(--text); }
+.lead { font-size: 1.1rem; color: var(--muted); margin: 0; }
+.meta { color: var(--muted); font-size: .9rem; margin-top: 12px; }
+a { color: var(--accent); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em;
+  background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; white-space: pre-wrap; font: .86rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.table-wrap { overflow-x: auto; margin: 12px 0 20px; }
+table { border-collapse: collapse; width: 100%; font-size: .94rem; }
+th, td { border-bottom: 1px solid var(--line); padding: 9px 10px; text-align: left; vertical-align: top; }
+th { background: var(--surface); font-weight: 600; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card h3 { margin-top: 0; }
+.prompt { border: 1px solid var(--line); border-radius: 10px; margin: 18px 0; overflow: hidden; }
+.prompt .head { background: var(--surface); padding: 12px 16px; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.prompt .num { background: var(--accent); color: #fff; border-radius: 999px; min-width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+.prompt .head strong { font-size: 1.05rem; }
+.prompt .body { padding: 4px 16px 14px; }
+.prompt pre { margin: 10px 0 6px; }
+.note { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
+.ok { color: var(--ok); font-weight: 600; }
+.warn { color: var(--warn); font-weight: 600; }
+footer { border-top: 1px solid var(--line); margin-top: 56px; padding-top: 16px; color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="meta"><a href="./">IBM Bob on Netcool code</a> · second use case</p>
+  <h1>Adding a device to a Netcool dashboard</h1>
+  <p class="lead">Three prompts that let IBM Bob add a new device to an existing Netcool Impact dashboard with exactly the same tiles, filters and selection as the devices already on it, review that change, and debug a fault reported on the dashboard.</p>
+  <p class="meta">Pilot use case for a telecom operator · 3 October 2026</p>
+</header>
+
+<section>
+  <h2>The use case</h2>
+  <p>The operator's dashboard is a Netcool Impact Operator View page: HTML with inline JavaScript, fed every minute by an Impact policy. It lists about twenty network devices. Each device has a checkbox that adds it to the overview counts, and three tiles, Critical, Major and Minor, that open the Event Viewer filtered on that device's alarms. Every device is also named in the page's "select all" and "unselect all" functions.</p>
+  <p>The request: Bob must be able to edit the dashboard to add a new device when one comes into service, so that the new device has the same dashboard attributes as the others. The demonstration uses mock data, since the policy and the scripts that fill the counts on the live system were not part of the package.</p>
+</section>
+
+<section>
+  <h2>Why not let Bob edit the page freely</h2>
+  <p>Copying a device by hand is about ten lines, and Bob gets it right most of the time. The first use case showed where it goes wrong: when Bob types new lines itself, the result varies from run to run, and nothing flags a mistake. The typical mistakes here would be invisible on the page:</p>
+  <ul>
+    <li>one tile keeps the old device's filter name, so it opens another device's alarms;</li>
+    <li>the device is missing from one of the select lists, so "select all" leaves it out;</li>
+    <li>an element id is mistyped, so its count never shows.</li>
+  </ul>
+  <p>So the change is made by a script, and Bob only decides what to copy and what to call it.</p>
+</section>
+
+<section>
+  <h2>How it works</h2>
+  <p>The same generic <code>code-review</code> skill as in the first use case gained one operation in its change task: a <strong>copy</strong>. Bob names the model device, the block of lines that is its row, and the other spellings of its name. A made-up example:</p>
+<pre>### copy sw1 as sw2
+lines: 40-47
+replace:
+  F_SW1_ -> F_SW2_
+  SW1 -> SW2
+why: the owner asks for the device SW2, with the same tiles, filters and selection as SW1.</pre>
+  <p>The script then:</p>
+  <ul>
+    <li>copies the model's block right after itself, with only those replacements;</li>
+    <li>finds every other line of the page that names the model (the select lists) and copies each one right after itself, the same way, so the new device is wherever the model is;</li>
+    <li><strong>refuses</strong> the copy while it still holds any name of the model, so no tile can keep an old filter;</li>
+    <li><strong>refuses</strong> a new name the page already uses, so ids and filter names stay unique;</li>
+    <li><strong>refuses</strong> a block that is not whole, one that closes a tag it never opened or the reverse, so the layout cannot break;</li>
+    <li>accounts in its report for every string and call it repeated, so the comparison of the two versions has nothing unexplained.</li>
+  </ul>
+  <p>The result is the model row, character for character, under new names, and the gate proves it.</p>
+
+  <h3>Web pages as code</h3>
+  <p>The skill's scanner reads code as text in any language. In a web page it now reads only the scripts and the event attributes (<code>onclick</code>, <code>onchange</code>), keeping the line numbers of the page. On the operator's dashboard that took the scan from 110 places, almost all markup noise, to 2.</p>
+
+  <h3>Debugging, as a task with a gate</h3>
+  <p>The skill's diagnosis task used to be instructions only. It is now a command with a gate, like the others:</p>
+  <ul>
+    <li>Bob writes the symptom, in the reporter's words, and the names it involves;</li>
+    <li>the script lists every line of the code that names them, with the scan hits on those lines;</li>
+    <li>Bob writes each possible cause with its line, a quote that must be on that line, how the line produces the symptom, and whether the evidence shows it, rules it out, or which test would decide it;</li>
+    <li>the gate passes only when a cause is shown, or every remaining cause names the test that decides it. Nothing in the code is changed.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>The three prompts</h2>
+  <p>The names in angle brackets are filled in for the device being added and the fault being reported.</p>
+
+  <div class="prompt"><div class="head"><span class="num">1</span><strong>Add the device</strong><span>a copy, under names of its own</span></div><div class="body">
+<pre>In a copy of the dashboard in inputs under refactored/step-1-device-added, add the device &lt;NEW DEVICE&gt;, with DeviceType '&lt;NEW DEVICE&gt;', modelled on the &lt;MODEL&gt; device: the same tiles, filters and selection, under names of its own.
+Report in reports/add-device.md.</pre>
+  </div></div>
+
+  <div class="prompt"><div class="head"><span class="num">2</span><strong>Review the change</strong><span>the copy against the original</span></div><div class="body">
+<pre>Review refactored/step-1-device-added against the dashboard in inputs.
+Write reports/code-review.md.
+Do not fix anything.</pre>
+  </div></div>
+
+  <div class="prompt"><div class="head"><span class="num">3</span><strong>Debug</strong><span>from a symptom to the line</span></div><div class="body">
+<pre>The &lt;DEVICE&gt; tiles of the dashboard in inputs open the alarms of &lt;OTHER DEVICE&gt; instead of those of &lt;DEVICE&gt;.
+Find the cause and write reports/diagnosis.md.
+Do not fix anything.</pre>
+  </div></div>
+  <div class="note">Three short prompts keep the run short and cheap in Bob coins. The model device should be one whose names are its own; the review step shows anything the copy shares with other devices.</div>
+</section>
+
+<section>
+  <h2>What was checked before running it in Bob</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Step</th><th>Result of the dry run on the operator's dashboard</th></tr></thead>
+    <tbody>
+      <tr><td>Add the device</td><td><span class="ok">Gate passed.</span> One copy wrote 10 lines: the new row after the model's row, and the new device in both select lists right after the model. Nothing else in the page differs. A block one line short at either end was refused with the exact reason, and every device row of the page counts as a whole block, so any of them can be the model.</td></tr>
+      <tr><td>Review the change</td><td><span class="ok">Gate passed.</span> The review lists exactly the 10 added lines and the strings and calls they repeat: 14 differences, all intended. An earlier version of the review lined up the near-identical select-list lines wrongly and reported 25 false rewrites; it now keeps strings in the alignment.</td></tr>
+      <tr><td>Debug</td><td><span class="ok">Gate passed</span> on a fault found in the dashboard itself: the lines that name the two devices were listed, and the cause was shown on its line. A quote that was not on its line was refused.</td></tr>
+      <tr><td>The skill</td><td>662 automated tests pass, including new ones for the copy, the whole-block check, web pages and the diagnosis.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Still to come: the run in Bob itself, and the counts of the new device on a live system, which need the Impact policy and the page's scripts to know its DeviceType.</p>
+</section>
+
+<section>
+  <h2>Running it</h2>
+  <ol>
+    <li>Open the dashboard's workspace folder in IBM Bob. It holds the page under <code>inputs/</code> and the skill under <code>.bob/</code>.</li>
+    <li>Start a new chat in the built-in <strong>Agent</strong> mode and send the prompts in order, with the names filled in.</li>
+    <li>After each prompt, Bob's command should end with <code>Gate: passed</code>. Read the report it names before sending the next one.</li>
+  </ol>
+</section>
+
+<footer>
+  This page describes the method and the prompts only. The operator's dashboard, its device names and the reports made from it are not published here.
+</footer>
+</main>
+</body>
+</html>
