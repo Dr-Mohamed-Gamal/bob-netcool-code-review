@@ -85,7 +85,7 @@ code-review/
 ├── README.md                # this listing
 ├── scripts/                 # the work: run.py is the single entry point
 │   ├── run.py               # review · fix · edit · change · diagnose · status · look · check
-│   ├── scan_code.py         # the scan: 37 kinds of defect, any language
+│   ├── scan_code.py         # the scan: 41 kinds of defect, any language
 │   ├── write_register.py    # review report from the scan and Bob's notes
 │   ├── fix_code.py          # corrected copy and change log
 │   ├── edit_code.py         # changes: corrections, rules, renames, splits, copies

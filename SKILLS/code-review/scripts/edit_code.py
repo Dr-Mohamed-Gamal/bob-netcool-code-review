@@ -241,6 +241,13 @@ def skeleton(report, command, scan, files, data):
           "### rule prefix-logs         a rule for every line: match: <regular expression>  with: <replacement, groups as \\1>",
           "                             add \"lines: 1-200\" to apply it to a range only; put a value in backticks to keep",
           "                             the spaces at its ends. A rule that changes no line is refused.",
+          "### commented-out code       \"remove: all\" takes out every line the facts below list as commented-out",
+          "                             code; \"except: 523, 1898\" keeps those lines (a comment that explains, not code).",
+          "                             \"labels: 221, 760\" also takes out those comment lines the facts list right above",
+          "                             that code which only label it (\"# COMMENTED BY ...\", \"uncomment the lines below\");",
+          "                             a heading or an explanation of the code that stays is kept.",
+          "                             The facts list each line with its text: decide from them, without reading the file",
+          "                             again, and do not copy line numbers into a block of your own.",
           "### copy sw1 as sw2          a new item made like an existing one (a device, a menu entry, a case):",
           "                             lines: 40-47     the block of the model, copied right after itself",
           "                             replace:         one \"old -> new\" per line, besides \"sw1 -> sw2\" itself, for the",
@@ -365,6 +372,13 @@ def skeleton(report, command, scan, files, data):
     md.append("Comment lines that look like code (commented-out code): %d, on lines %s"
               % (len(data["commented_code"]), spans(n for _, n, _ in data["commented_code"]) if not many
                  else ", ".join(where(f, n) for f, n, _ in data["commented_code"])))
+    if data["commented_code"]:
+        md.append("  Each of them, with its text (the block \"### commented-out code\" takes them all out, less \"except:\"):")
+        md += ["    %s  %s" % (where(f, n), short(text.strip(), 110)) for f, n, text in data["commented_code"]]
+    if data["labels"]:
+        md.append("  The comment lines right above them, which may only label them (\"labels:\" in the block takes out")
+        md.append("  those you name with the code under them; a heading or one that explains code that stays is kept):")
+        md += ["    %s  %s" % (where(f, n), short(text, 110)) for f, n, text in data["labels"]]
     md.append("Names assigned and never read: %s" % (", ".join("%s (line %s)" % (note.split(" (")[0].split(" — ")[0], where(f, n))
                                                                for f, n, note in data["unread"]) or "none"))
     for key, title in (("dupbranch", "Branches with the same statements"), ("repeat", "Same condition twice in one chain")):
@@ -417,8 +431,67 @@ def main():
     replace = defaultdict(dict)                  # file -> first line -> (last line, new lines, block)
     inserts = defaultdict(lambda: defaultdict(list))   # file -> line -> new lines after it
     rules = []
+    for b in notes["corrections"]:               # "### commented-out code": the lines the facts list, less "except:"
+        if b["type"] != "commented":
+            continue
+        label = "the block \"commented-out code\" (line %d of the notes)" % b["at"]
+        name = file_of(b, label)
+        if name is None:
+            continue
+        if not (b.get("remove") or "").strip().lower().startswith(("all", "y", "t")):
+            problems.append("%s: write \"remove: all\", and list under \"except:\" the lines to keep." % label)
+            b["type"] = "skip"
+            continue
+        keep = notes_file.ranges(b.get("except") or "") if (b.get("except") or "").strip() else []
+        if (b.get("except") or "").strip() and keep is None:
+            problems.append("%s: \"except:\" must be line numbers such as 523, 1898-1899." % label)
+            b["type"] = "skip"
+            continue
+        kept = {n for x, y in keep or [] for n in range(x, y + 1)}
+        listed = sorted(n for f, n, _ in data["commented_code"] if f == Path(name).name)
+        wrong = sorted(kept - set(listed))
+        if wrong:
+            problems.append("%s: \"except:\" names line(s) %s, which the facts do not list as commented-out code."
+                            % (label, spans(wrong)))
+        chosen = [n for n in listed if n not in kept]
+        if not chosen:
+            problems.append("%s: no line is left to take out." % label)
+            b["type"] = "skip"
+            continue
+        named = (b.get("labels") or "").strip()      # "labels:": the comment lines above the code that only label it
+        offered = {n for f, n, _ in data["labels"] if f == Path(name).name}
+        above = set()                                # those right above a line that goes
+        for n in chosen:
+            k = n - 1
+            while k in offered:
+                above.add(k)
+                k -= 1
+        if named and named.lower() not in ("none", "no"):
+            asked = notes_file.ranges(named)
+            if asked is None:
+                problems.append("%s: \"labels:\" must be line numbers such as 221, 760: name each label that goes, "
+                                "since some of those lines may explain code that stays." % label)
+                b["type"] = "skip"
+                continue
+            asked = {n for x, y in asked for n in range(x, y + 1)}
+            if asked - offered:
+                problems.append("%s: \"labels:\" names line(s) %s, which the facts do not list as a comment above "
+                                "commented-out code." % (label, spans(sorted(asked - offered))))
+            if (asked & offered) - above:
+                problems.append("%s: \"labels:\" names line(s) %s, but the code under them stays (\"except:\"): keep "
+                                "them too." % (label, spans(sorted((asked & offered) - above))))
+            chosen += sorted(asked & above)
+        chosen = sorted(set(chosen))
+        parts, start = [], chosen[0]
+        for x, y in zip(chosen, chosen[1:] + [None]):
+            if y != x + 1:
+                parts.append((start, x))
+                start = y
+        b.update(type="lines", parts=parts, first=parts[0][0], last=parts[0][1], remove="yes")
     for b in notes["rules"] + notes["corrections"]:
         at = "line %d of the notes" % b["at"]
+        if b["type"] == "skip":
+            continue
         if b["type"] == "rule":
             if not b.get("match") or "with" not in b:
                 problems.append("rule %s (%s): needs \"match:\" and \"with:\"." % (b["name"], at))

@@ -36,7 +36,8 @@ def read(target, hash_comments):
     scan.add_documents(scan_code.documents_for([target]))
     data = {"lines": 0, "blank": 0, "comment": 0, "commented_code": [], "log": [], "calls": Counter(),
             "same_source": defaultdict(list), "identical": defaultdict(list), "in_loop": [],
-            "comment_at": defaultdict(set)}      # file -> the lines that are comments
+            "comment_at": defaultdict(set),      # file -> the lines that are comments
+            "labels": []}                        # the comment lines right above commented-out code
     kept = []
     scan.learn(files, hash_comments)
     for f in files:
@@ -56,7 +57,7 @@ def read(target, hash_comments):
         # where the code's own variables all carry a prefix, "name = value" with no prefix is an example, not code
         prefixed_only = Path(name).suffix.lower() in scan.body_marked \
             or scan_code.all_prefixed(*scan_code.own_names(scan_code.lex(scan.text[name], style)))
-        block, found_here = [], []                 # the lines of the block comment being read: (line, text, is code)
+        block, found_here, single = [], [], set()  # the lines of the block comment being read: (line, text, is code)
         for n, line in enumerate(lines, 1):
             text = line.strip()
             data["lines"] += 1
@@ -72,6 +73,7 @@ def read(target, hash_comments):
                 in_a_block, closes = True, not in_block
             elif text.startswith(marks):
                 body = text.lstrip("/#- ")
+                single.add(n)
             if body is not None:
                 data["comment"] += 1
                 data["comment_at"][f.name].add(n)
@@ -95,6 +97,15 @@ def read(target, hash_comments):
                 elif is_code:
                     found_here.append((f.name, n, text))
         data["commented_code"] += sorted(found_here, key=lambda r: r[1])
+        # the comment lines right above commented-out code, with no blank line between: they may only label it
+        # ("# COMMENTED BY ...", "# Uncomment the 4 lines below ..."), or explain code that stays
+        code_at, labels = {m for _, m, _ in found_here}, set()
+        for m in code_at:
+            k = m - 1
+            while k in single and k not in code_at:
+                labels.add(k)
+                k -= 1
+        data["labels"] += [(f.name, k, lines[k - 1].strip()) for k in sorted(labels)]
         toks = scan_code.lex(scan.text[name], style)
         loop_of = {}                              # token inside the block of a loop -> line of the loop
         for i, t in enumerate(toks):

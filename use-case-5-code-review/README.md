@@ -104,17 +104,17 @@ Do not change the policy or the rules file.
 |---|---|
 | **Why this step** | Before anything changes, list what is wrong and what each defect does to a ticket or an event. The operator sees the size of the problem, and every later step refers back to this list |
 | **Reads** | The original policy and rules file, each with its document; the lookup files when a finding depends on them |
-| **The skill** | Scan the code for 37 kinds of defect (a name misspelt, read before it is set or never used; a single `=` where a comparison is meant; an XML entity or tag not closed; brackets that do not balance; branches that repeat each other; code that cannot run), say for each hit where its value goes, and write the notes file with every hit to decide |
+| **The skill** | Scan the code for 41 kinds of defect (a name misspelt, read before it is set or never used; a single `=` where a comparison is meant; an XML entity or tag not closed; brackets that do not balance; branches that repeat each other; code that cannot run; a log that says the code discards or skips while the statement that would do it is switched off; a dashboard row that names another item), say for each hit where its value goes, and write the notes file with every hit to decide |
 | **Bob decides** | Whether each hit is a real defect, with a reason the workspace shows; by reading the whole file once, the defects the scan cannot see (see below); for each finding its effect, the fix and how sure it is; the questions only the operator can answer |
 | **The gate refuses** | A hit left undecided; a finding whose quoted words are not on the line it cites; a "not a defect" without the evidence that settles it |
 | **Writes** | A defect register per input, with the notes file that holds Bob's judgements |
 | **Why these words** | "The effect on the ticket / on the event" makes the register speak the operator's language; "Do not change" keeps the step read-only |
 
-#### What if a defect is not one of the 37 kinds?
+#### What if a defect is not one of the 41 kinds?
 
-The 37 kinds are only the first pass. Prompt 1 works in two passes:
+The 41 kinds are only the first pass. Prompt 1 works in two passes:
 
-1. **The scan (done by the skill)** finds the 37 kinds of defect that readers most often miss. It finds the same things every time.
+1. **The scan (done by the skill)** finds the 41 kinds of defect that readers most often miss. It finds the same things every time.
 2. **The reading (Bob).** The skill makes Bob read the whole file once, from the first line to the last, for what a scan cannot see: wrong logic, code that can never run, a value that ends up in the wrong field. Each defect found this way goes into the register under **Findings from reading**, with its line, the quoted code, what it does, its effect on the ticket or the event, the fix, and how sure Bob is. The gate checks that the quoted words are on the line the finding cites.
 
 Kinds of defect that only reading finds, for example:
@@ -122,9 +122,8 @@ Kinds of defect that only reading finds, for example:
 - a branch that can never run, because of how an if / else chain is built;
 - a ticket field built from a variable that nothing sets, so the field is always empty;
 - a field set, then always overwritten further down, so the first line does nothing;
-- a log line that says an alarm is dropped while the line that drops it is commented out, so the alarm still reaches the event list.
 
-In the clean run, reading added findings of this kind in both files.
+In the clean run, reading added findings of this kind in both files. Two kinds that reading found in earlier runs are now part of the scan, so they are found every time: a log that says an alarm is dropped while the line that drops it is commented out, and a dashboard row whose filter names another device.
 
 **The limits.** Reading is Bob's judgement, as a human reviewer's is. The gate checks that each finding quotes its line, but nothing can prove that every defect was found, so a person should read the findings from reading before they go to the operator. Some defects cannot be seen in the code at all, such as a wrong value in a lookup table or a difference from the live system. That is why every register ends with **Not checked**: nothing was run on an Impact server or a probe.
 
@@ -142,7 +141,7 @@ Do not decide what is the client's to decide.
 | **Reads** | The original file and its defect register |
 | **The skill** | Make every correction that has only one possible form, apply Bob's corrections, and compare the copy with the original. A correction tagged with the wrong finding is refused; switching commented-out code back on becomes a question, not a fix |
 | **Bob decides** | The correction of each finding the code itself settles, and a specific question for each one only the operator can settle (a filter switched off on purpose, an address written into the code) |
-| **The gate refuses** | A High finding with neither a correction nor a specific question; a new call, operator or non-ASCII character the original did not have, unless its reason is written; notes left untouched |
+| **The gate refuses** | A High finding with neither a correction nor a specific question; a new call, operator or non-ASCII character the original did not have, unless its reason is written; a conditional operator (?) the code does not already use; notes left untouched. A correction that writes a different number of lines than it replaces, or takes out more than two lines, is not made: it is listed for the operator as a proposal, with its text |
 | **Writes** | The corrected copy (step 1) and a change log per input |
 | **Why these words** | "Do not decide what is the client's to decide" turns business choices into questions instead of silent changes |
 
@@ -160,8 +159,8 @@ Do not change the ticket content or the events.
 |---|---|
 | **Why this step** | Remove the code switched off over the years, so engineers read only what runs. Both documents ask for it, and it is the change most often done carelessly by hand |
 | **Reads** | The step-1 copy and the document's item on commented-out code |
-| **The skill** | List every commented-out line and block, telling them apart from comments that explain live code; remove what Bob confirms, in a copy; refuse to remove a comment that stands right above a live line that stays; compare the copy with step 1 |
-| **Bob decides** | Which commented-out code goes (normally all of it), and which comment is an explanation to keep |
+| **The skill** | List every commented-out line and block with its text, telling them apart from comments that explain live code, and the comment lines right above them that may only label them; remove them all with one entry of the plan, less the lines Bob keeps, so Bob neither reads the file again nor types line numbers; work in a copy; refuse to remove a comment that stands right above a live line that stays; compare the copy with step 1 |
+| **Bob decides** | Which listed lines stay (a comment that explains, not code), and which labels go with the code they mark, such as "# disabled by ops"; a heading stays |
 | **The gate refuses** | A removal that changes a live line or leaves half a block; an item of the document left unaccounted for |
 | **Writes** | The cleaned copy (step 2) and a clean-up report per input |
 | **Why these words** | "Do not change the ticket content or the events" states the safety condition the comparison checks |
@@ -268,6 +267,7 @@ Every report starts with a **Verdict**, then has its main table, and ends with *
 | First run, full scope | Register and fix usable; the split into modules passed its gate and was wrong. The split, the log rewrite and the lookup files were taken out of the prompts |
 | Clean runs 1–4 | Each closed a gap: the path change limited to the prefix, the review written by the skill, comments that explain live code kept, commands given the file the prompt names |
 | **Clean run 5, untouched** | **All ten gates passed with no intervention**: nothing typed but the five prompts, 44 minutes, about 53 Bob coins. Every step checked by hand was right; the final reviews found no unintended change and raised the operator's open decisions as questions |
+| **Clean runs with the 41 kinds** | **All ten gates passed, and a separate script checked every copy on its own**: the fix adds no line, the clean-up removes only comments, the standardization changes names or path prefixes only, and both reviews find no unintended difference. The latest run: 14 minutes and about 25 Bob coins, with every prompt doing its own step for both inputs. Gaps closed on the way, each generic: a correction of Bob's that writes more lines than it replaces, or uses a `?` operator new to the code, becomes a question for the owner; the clean-up removes the commented-out lines from the plan's own list; after a long chat is summarized, the status names a step done for one input and not the other; a removed assignment that an included file may still read becomes a question for the owner |
 
 **Lessons:** where the skill makes the change, the result is the same and right every time; where Bob writes new code itself, it varies. A gate proves the work is complete and accounted for, not that it is right, so each step's report is read before the next prompt.
 

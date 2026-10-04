@@ -179,6 +179,25 @@ def finish(task, command, report, passed, code):
     sys.exit(code)
 
 
+def gaps(known):
+    """The reports that one folder of the workspace has and another lacks, when that other folder has every report the
+    first had before it: the same steps were taken in both, and the last one was not yet taken in the other."""
+    by_folder = {}                               # first folder of the path -> the rest of the path -> when started
+    for report, r in known.items():
+        parts = Path(report).parts
+        if len(parts) > 1 and r.get("at"):
+            by_folder.setdefault(parts[0], {})[str(Path(*parts[1:]))] = r["at"]
+    out = []
+    for a, reports in by_folder.items():
+        for rest, at in sorted(reports.items(), key=lambda kv: kv[1]):
+            before = {x for x, t in reports.items() if t < at}
+            for b, other in sorted(by_folder.items()):
+                missing = str(Path(b, rest))
+                if b != a and before and rest not in other and before <= set(other) and missing not in dict(out):
+                    out.append((missing, str(Path(a, rest))))
+    return out
+
+
 def status():
     """Say where the work in this workspace stands."""
     known = tasks()
@@ -197,9 +216,19 @@ def status():
               "results, not about the first message of the conversation." % ", ".join(reversed(latest)))
         print("This list holds only the tasks that were started: if the latest request asks for a report that is not in it, "
               "that task is not done yet. Start it before you reply.")
-    if not todo:
+    missing = gaps(known)
+    if missing:
+        print("\nNot started, though another folder has it after the same earlier steps:")
+        for report, model in missing:
+            print("  %s   (as %s)" % (report, model))
+        print("When the request that %s belongs to asks for this one too, it is not done: start it now, as that request "
+              "says, before you reply." % missing[0][1])
+    if not todo and not missing:
         print("\nGate: passed. Every task that was started has passed its gate.")
         sys.exit(0)
+    if not todo:
+        print("\nGate: not passed yet. %d report(s) that another folder has are not started." % len(missing))
+        sys.exit(NOT_PASSED)
     print("\nNot finished. Do this one next: run it again and settle what it lists.")
     print("  %s" % todo[0][1]["command"])
     if len(todo) > 1:

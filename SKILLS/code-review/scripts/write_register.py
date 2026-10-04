@@ -204,6 +204,23 @@ TEXTS = {
                "The replace call stops after the given number of replacements, so text with more occurrences keeps "
                "the rest unchanged. For an escape of markup, the text that follows is not well formed.",
                PROVEN + " that the count is written. Whether the text can hold more occurrences needs reading."),
+    "announced": ("High",
+                  "The log says the code does this, and no statement after it does it (most often it was commented "
+                  "out), so it does not happen: what the code works on goes on as if nothing was done, while the log "
+                  "says otherwise.",
+                  PROVEN + " that no statement after the log does it. Whether it was switched off on purpose is for the "
+                  "owner to say."),
+    "otheritem": ("Medium",
+                  "The row belongs to one item (its id says so) but names another item, so it shows or selects what "
+                  "belongs to the other one. A copied row whose names were not all changed, or a choice of the owner.",
+                  PROVEN + " that the line names the other item. Whether that is meant is for the owner to say."),
+    "handlername": ("Low",
+                    "The message names another error than the one the handler catches, so the log points whoever "
+                    "reads it to the wrong failure.",
+                    PROVEN + "."),
+    "doublesemi": ("Low",
+                   "An empty statement: it does nothing. It may mark a statement that was cut, or a line edited by mistake.",
+                   PROVEN + "."),
 }
 # kinds the scan settles by itself as findings, with the correction to make
 SETTLED = {
@@ -226,6 +243,8 @@ SETTLED = {
     "strclose": "Close the string.",
     "discard": "Decide which value is meant: use the earlier value before this line, or remove what builds it.",
     "reapplied": "Make the replacement in one place.",
+    "handlername": "Name the error the handler catches in its message.",
+    "doublesemi": "Remove the second ;.",
 }
 # kinds that need a reader unless the scan has evidence: the correction, and the question to answer
 TO_JUDGE = {
@@ -262,6 +281,10 @@ TO_JUDGE = {
     "mixed": ("Add brackets that show the grouping that is meant.", "Which parts belong together?"),
     "capped": ("Remove the count, or make it the largest number of occurrences the text can hold.",
                "Can the text hold more occurrences than the count?"),
+    "announced": ("Put the statement back if it is meant to run; if it was switched off on purpose, make the log "
+                  "say what happens.", "Was the action switched off on purpose?"),
+    "otheritem": ("Give the row its own item's values, as in the item's other rows.",
+                  "Is this row meant to name the other item?"),
 }
 NAME_KINDS = ("unset", "unread", "once", "unlisted", "twice", "early", "index", "twins", "nocall", "writeback",
               "discard", "reapplied")
@@ -372,7 +395,7 @@ def scan_rows(scan, files):
             decision = OPEN
         else:
             fix, decision = TO_JUDGE[key][0], OPEN
-        if all(LOG_LINE.match(scan.lines[f][n - 1]) for n in lines) and key not in ("brackets", "orphan"):
+        if all(LOG_LINE.match(scan.lines[f][n - 1]) for n in lines) and key not in ("brackets", "orphan", "announced"):
             severity = "Low: only a log message is affected"
         if key == "discard" and note.endswith("to the same value"):
             severity = "Low: the same statement twice"

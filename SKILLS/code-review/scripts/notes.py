@@ -60,6 +60,7 @@ SEVERAL = re.compile(r"^#{3,4}\s*(?:(?P<file>[^:#]+?\.[A-Za-z0-9]+)\s*:\s*)?line
 INSERT = re.compile(r"^#{3,4}\s*(?:(?P<file>[^:#]+?\.[A-Za-z0-9]+)\s*:\s*)?after\s+line\s+(?P<a>\d+)\s*$", re.I)
 RULE = re.compile(r"^#{3,4}\s*rule\s*:?\s*(?P<name>.+?)\s*$", re.I)
 COPY = re.compile(r"^#{3,4}\s*copy\s+`?(?P<old>[^`\s]+)`?\s+as\s+`?(?P<new>[^`\s]+)`?\s*$", re.I)
+COMMENTED = re.compile(r"^#{3,4}\s*(?:(?P<file>[^:#]+?\.[A-Za-z0-9]+)\s*:\s*)?commented[- ]out\s+code\s*$", re.I)
 FILE = re.compile(r"^#{3,4}\s*(?:file\s*:?\s*)?`?(?P<path>[^`\s]+\.[A-Za-z0-9]+)`?\s*$", re.I)
 KEY = re.compile(r"^([A-Za-z][A-Za-z ]{1,24}?)\s*:\s?(.*)$")
 ROW_ID = re.compile(r"^\s*(?:[-*]\s*)?\**([A-Z]-\d+)\**(.*)$")
@@ -67,7 +68,7 @@ DECISION_KEY = re.compile(r"^\s*(?:[-*]\s*)?\**decision\**\s*[:=]\s*(.*)$", re.I
 NAME = re.compile(r"^[@$%]?[A-Za-z_]\w*$")
 FILLER = ("?", "...", "…", "none yet", "tbd")
 BLOCK_KEYS = ("severity", "code", "kind", "what", "fix", "confidence", "after", "why", "effect", "owner", "remove",
-              "insert", "match", "with", "lines", "prepend", "append", "for", "replace", "keep", "except")
+              "insert", "match", "with", "lines", "prepend", "append", "for", "replace", "keep", "except", "labels")
 MANY_LINES = ("after", "insert", "prepend", "append", "replace")      # values that are lines of code, kept as written
 
 
@@ -190,7 +191,11 @@ def read(path):
                 else:
                     m = RULE.match(line.strip())
                     copy = COPY.match(line.strip())
-                    if copy and section == "corrections":
+                    commented = COMMENTED.match(line.strip())
+                    if commented and section == "corrections":
+                        header = {"type": "commented", "file": (commented.group("file") or "").strip() or None,
+                                  "first": 0, "last": 0}
+                    elif copy and section == "corrections":
                         header = {"type": "copy", "old": copy.group("old"), "new": copy.group("new")}
                     elif m and section == "corrections":
                         header = {"type": "rule", "name": m.group("name")}

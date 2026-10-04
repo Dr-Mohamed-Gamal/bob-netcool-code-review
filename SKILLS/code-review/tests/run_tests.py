@@ -18,6 +18,7 @@ purpose. A test marked "known fault" describes a fault in a script that is
 still to be corrected: it is expected to fail until the script is corrected.
 Every temporary file is deleted at the end.
 """
+import json
 import re
 import shutil
 import subprocess
@@ -40,7 +41,9 @@ TITLES = ["Assignment in a condition", "Name read, never assigned", "Name assign
           "Same label twice in one switch", "Function defined more than once",
           "Code after a statement that leaves the block", "String not closed on its line",
           "Loop bound that includes the size", "Command or code run with text joined to a value",
-          "Data from outside the code is changed", "Replace limited to a count"]
+          "Data from outside the code is changed", "Replace limited to a count",
+          "Log that announces an action that does not happen", "Row that names another item",
+          "Error handler whose message names another error", "Two ; in a row"]
 
 SAMPLES = {
     "defects.js": """// billing
@@ -485,9 +488,8 @@ FIX_EXPECTED = """// sample rules
 if (@Severity == 5) {
     Title = "Critical alarm: " + @Node;
 }
-elseif (@Severity == 4) {
+elseif (@Severity == 4 && @Manager == 'Collector') {
     Title = "Major: " + @Node;
-    Title = Title + " (" + @Manager + ")";
 }
 Summary = Title + " " + @Summary;
 Payload = '<param name="title">' + Summary + '</param>' + "&lt;" + 'Test1,Test2';
@@ -958,6 +960,70 @@ def main():
         check("scan_code.run: gives the scan and the files, and finds no document where there is none",
               r.returncode == 0 and r.stdout.strip() == "1 2 []", r.stdout + r.stderr)
 
+        # a log that announces an action whose statement is commented out
+        ANN = "Log that announces an action that does not happen"
+        nc = tmp / "newchecks"
+
+        def scan_hash(fname, text):
+            write(nc / fname, text)
+            code, out, err = run("scan_code.py", "--hash-comments", nc / fname)
+            check("%s: runs" % fname, code == 0 and not err, err[-300:])
+            return counts(out), out
+        c, out = scan_hash("announce.rules", 'if ( match(@AlertKey, "noise") ) {\n    log(WARN, "DISCARDING ALARM " + @Node)\n'
+                           '    #discard\n}\n')
+        check("announced: a log that says discarding, over a commented-out discard",
+              c.get(ANN) == 1 and "line 2" in section(out, ANN) and "line 3 is commented out" in out, out)
+        c, out = scan_hash("live.rules", 'if ( match(@AlertKey, "noise") ) {\n    log(WARN, "Discarding the alarm")\n    discard\n}\n')
+        check("announced: not when the discard runs", not c.get(ANN), out)
+        c, out = scan_hash("negated.rules", 'if ( match(@AlertKey, "noise") ) {\n    log(WARN, "DISCARD REJECTED FOR TEST")\n'
+                           '    #discard\n}\n')
+        check("announced: not when the log says the action is not done", not c.get(ANN), out)
+        c, out = scan_hash("heading.rules", '## Discard the noise alarm\nif ( match(@A, "x") ) {\n'
+                           '    log(WARN, "Discarding the alarm")\n    discard\n}\n')
+        check("announced: not for a heading comment above a discard that runs", not c.get(ANN), out)
+        code, out, err = run("write_register.py", "--hash-comments", nc / "announce.rules", "--out", nc / "announce.md")
+        reg = (nc / "announce.md").read_text() if (nc / "announce.md").exists() else ""
+        c, out = scan_hash("removed.rules", 'if ( match(@AlertKey, "noise") ) {\n    log(WARN, "DISCARDING ALARM " + @Node)\n}\n')
+        check("announced: still found once the commented-out discard is removed",
+              c.get(ANN) == 1 and "no statement after it does it" in out, out)
+        c, out = scan_hash("skip.rules", 'foreach (x in $list) {\n    log(DEBUG, "Skipping item " + x)\n    continue\n}\n')
+        check("announced: not when the log says skipping and the code goes on to the next item", not c.get(ANN), out)
+        c, out = scan_hash("returned.rules", 'log(DEBUG, "Returned data = " + length($rows))\n@A = 1\n')
+        check("announced: not for a log that only says data was returned", not c.get(ANN), out)
+        check("announced: High in the register, and left to the owner with a question",
+              "| High |" in reg and "switched off on purpose" in reg and "Low: only a log message" not in reg, reg[-1500:] + err)
+
+        # a row of one kind that names another item
+        OTHER = "Row that names another item"
+        row = lambda item, named, sev: ('<div onclick="open(\'f=F_%s_%s&sql=Dev = \\\'%s\\\'\')" id="%s%s">0</div>'
+                                        % (item.upper(), sev, named.upper(), item, sev))
+        page = lambda third: "<html><body>\n" + "\n".join(
+            '<input type="checkbox" id="%s">&nbsp %s\n%s\n%s' % (i, i.upper(), row(i, n, "Critical"), row(i, n, "Major"))
+            for i, n in (("sw1", "sw1"), ("sw2", "sw2"), ("sw3", third))) + "\n</body></html>\n"
+        write(nc / "rows.html", page("sw2"))
+        code, out, err = run("scan_code.py", nc / "rows.html")
+        c = counts(out)
+        check("otheritem: the rows of sw3 that name sw2 are found, and only they",
+              c.get(OTHER) == 2 and "the row of sw3 names sw2" in out and "the row of sw1" not in out, out)
+        write(nc / "rows-ok.html", page("sw3"))
+        code, out, err = run("scan_code.py", nc / "rows-ok.html")
+        check("otheritem: nothing when every row names its own item", not counts(out).get(OTHER), out)
+
+        # an error handler whose message names another error; two ; in a row
+        HN, DS = "Error handler whose message names another error", "Two ; in a row"
+        write(nc / "handler.java", 'class A {\n  void f() {\n    try { x(); }\n    catch (IOException e) {\n'
+              '      log("Error: TimeoutException " + e);\n    }\n  }\n}\n')
+        c, out = counts(run("scan_code.py", nc / "handler.java")[1]), run("scan_code.py", nc / "handler.java")[1]
+        check("handlername: the message names TimeoutException in a handler of IOException",
+              c.get(HN) == 1 and "line 5" in section(out, HN), out)
+        write(nc / "handler-ok.java", 'class A {\n  void f() {\n    try { x(); }\n    catch (IOException e) {\n'
+              '      log("Error: IOException " + e);\n    }\n  }\n}\n')
+        check("handlername: not when the message names the error handled",
+              not counts(run("scan_code.py", nc / "handler-ok.java")[1]).get(HN))
+        write(nc / "semis.js", "function f() {\n  let a = 1;;\n  for (;;) { break; }\n  return a;\n}\n")
+        out = run("scan_code.py", nc / "semis.js")[1]
+        check("doublesemi: a;; is found, for (;;) is not", counts(out).get(DS) == 1 and "line 2" in section(out, DS), out)
+
         # ================================================================ check_report
         fixtures = tmp / "fixtures"
         write(fixtures / "full.md", "| Line | Code |\n|---|---|\n| 2 | cond |\n| 5 | cond |\n"
@@ -1337,14 +1403,32 @@ The rules file has two assignments in conditions and a misspelt name; it is not 
         check("fix: the change log has the rows of the notes, in the order of the lines",
               re.search(r"^\| C-01 \| rules\.src \| 2 \| 2 \| Assignment in a condition \|", logtext, re.M)
               and "| H-01 | rules.src | 3 | 3 | Wording | `Title = \"Critical: \" + @Node;` | `Title = \"Critical alarm: \" + @Node;` | the desk asked" in logtext
-              and "| H-02 | rules.src | 5 | 5 | Branch rewritten | `elseif (@Severity == 4 && @Manager = 'Collector') {` | `elseif (@Severity == 4) {` |" in logtext
-              and "| H-02 | rules.src |  | 8 | Branch rewritten | (no line) | `}` | As above. |" in logtext
-              and "| H-03 | rules.src | 8 | 9 | Misspelt name | `Summary = Title + \" \" + sumary;` | `Summary = Title + \" \" + @Summary;` |" in logtext
-              and "| H-04 | rules.src | 9 |  |" in logtext and "| `Summary = Summary + \" at \" + Node;` | (removed) |" in logtext
-              and "| C-02 | rules.src | 10 | 10 |" in logtext, logtext)
+              and "| C-02 | rules.src | 5 | 5 | Assignment in a condition |" in logtext
+              and "| H-02 | rules.src | 8 | 8 | Misspelt name | `Summary = Title + \" \" + sumary;` | `Summary = Title + \" \" + @Summary;` |" in logtext
+              and "| H-03 | rules.src | 9 |  |" in logtext and "| `Summary = Summary + \" at \" + Node;` | (removed) |" in logtext
+              and "| C-03 | rules.src | 10 | 9 |" in logtext, logtext)
+        check("fix: a correction that writes more lines than it replaces is proposed with its text, not applied",
+              "## Proposed, not applied: for the owner to confirm" in logtext
+              and "| rules.src | 5-7 | `elseif (@Severity == 4 && @Manager = 'Collector') {` | `elseif (@Severity == 4) {`<br>" in logtext
+              and "This correction writes 4 line(s) in the place of 3" in logtext and "@Manager + \")\"" not in got, logtext[-1500:])
+        # an assignment taken out while an include runs before the name is set again: the included code is not in
+        # the workspace and may read the value, so the removal is proposed to the owner, not made
+        ib = tmp / "include-between"
+        write(ib / "job.rules", "@Tech = \"A\"\ninclude \"$RULES_HOME/other.rules\"\n@Tech = \"B\"\nlog(@Tech)\n")
+        run("run.py", "review", "job.rules", "--out", "reports/review.md", cwd=ib)
+        iargs = ("run.py", "fix", "job.rules", "--out", "fixed", "--log", "reports/log.md", "--register", "reports/review.md")
+        run(*iargs, cwd=ib)
+        write(notes_for(ib / "reports" / "log.md"), "## Corrections\n### line 1\nremove: yes\n"
+                                                    "why: the value is replaced on line 3 before anything reads it.\n")
+        icode, iout, ierr = run(*iargs, cwd=ib)
+        itext = (ib / "reports" / "log.md").read_text() if (ib / "reports" / "log.md").exists() else ""
+        igot = (ib / "fixed" / "job.rules").read_text() if (ib / "fixed" / "job.rules").exists() else ""
+        check("fix: an assignment taken out while an include runs before the name is set again is proposed, not made",
+              "the include on line 2 runs before it is set again" in itext and igot.startswith("@Tech = \"A\""),
+              iout + ierr + itext[-800:])
         check("known fault (fix_code.py): a removed line is labelled \"Line removed\" even when the removal is not the "
-              "last block of the notes", "| H-04 | rules.src | 9 |  | Line removed |" in logtext,
-              [l for l in logtext.split("\n") if l.startswith("| H-04")], known=True)
+              "last block of the notes", "| H-03 | rules.src | 9 |  | Line removed |" in logtext,
+              [l for l in logtext.split("\n") if l.startswith("| H-03")], known=True)
         check("fix: with every High finding corrected the gate passes, and the verdict and question are in the log",
               code == 0 and "Corrections: complete" in out and "Gate: passed" in out and "0 left as they are" in out
               and "Every High finding is corrected" in logtext and "Should the Collector check stay?" in logtext, out)
@@ -1433,6 +1517,65 @@ The rules file has two assignments in conditions and a misspelt name; it is not 
         code, out, err = run("run.py", "change", hd / "rules.src", hd / "out", "--report", hd / "log.md", "--lines")
         check("change: a row with the line number and the line as it is now settles it",
               code == 0 and "Gate: passed" in out, out + err)
+
+        # ================================================================ edit: the block "### commented-out code"
+        cc = tmp / "commented"
+        write(cc / "clean.js", "// billing\nfunction total(items) {\n  let sum = 0;\n  // sum = sum + legacyFee(items);\n"
+                               "  for (const item of items) {\n    sum += item.price;\n    // log(\"item \" + item.id);\n  }\n"
+                               "  // the total excludes tax\n  return sum;\n}\n")
+        ccplan = notes_for(cc / "change.md")
+        run("edit_code.py", cc / "clean.js", "--out", cc / "out", "--report", cc / "change.md")
+        ctext = ccplan.read_text() if ccplan.exists() else ""
+        check("edit: the plan lists each commented-out line with its text, and the block that takes them out",
+              "    4  // sum = sum + legacyFee(items);" in ctext and "    7  // log(\"item \" + item.id);" in ctext
+              and "### commented-out code" in ctext and "the total excludes tax" not in ctext.split("Each of them")[-1], ctext[-900:])
+        block = ("### commented-out code\nremove: all\nexcept: %s\nwhy: the requirement asks to remove commented-out code; "
+                 "nothing that runs changes.\n\n")
+        write(ccplan, ctext.replace("## Corrections\n", "## Corrections\n" + block % "9", 1)
+              .replace("## Verdict\n", "## Verdict\nThe commented-out call is removed; the commented-out log is kept.\n", 1))
+        code, out, err = run("edit_code.py", cc / "clean.js", "--out", cc / "out", "--report", cc / "change.md")
+        check("edit: \"except:\" that names a line the facts do not list is refused",
+              code == 3 and "\"except:\" names line(s) 9, which the facts do not list as commented-out code" in out, out + err)
+        write(ccplan, ctext.replace("## Corrections\n", "## Corrections\n" + block % "7", 1)
+              .replace("## Verdict\n", "## Verdict\nThe commented-out call is removed; the commented-out log is kept.\n", 1))
+        code, out, err = run("edit_code.py", cc / "clean.js", "--out", cc / "out", "--report", cc / "change.md")
+        got = (cc / "out" / "clean.js").read_text() if (cc / "out" / "clean.js").exists() else ""
+        check("edit: \"remove: all\" takes out every listed line but those under \"except:\"; comments that explain stay",
+              code == 0 and "Result: complete" in out and "legacyFee" not in got and "// log(\"item \" + item.id);" in got
+              and "// the total excludes tax" in got and got.count("\n") == 10, out + err + got)
+
+        # the comment lines right above commented-out code are listed too: "labels:" takes out those that only label it
+        lb = tmp / "labels"
+        write(lb / "label.js", "// totals\nfunction total(items) {\n  let sum = 0;\n  // DISABLED BY OPS\n"
+                               "  // sum = sum + legacyFee(items);\n  // the loop below adds the prices\n  // log(\"start\");\n"
+                               "  for (const item of items) {\n    sum += item.price;\n  }\n  return sum;\n}\n")
+        lbplan = notes_for(lb / "change.md")
+        run("edit_code.py", lb / "label.js", "--out", lb / "out", "--report", lb / "change.md")
+        ltext = lbplan.read_text() if lbplan.exists() else ""
+        check("edit: the plan lists the comment lines right above commented-out code, with their text",
+              "    4  // DISABLED BY OPS" in ltext.split("which may only label them")[-1]
+              and "    6  // the loop below adds the prices" in ltext.split("which may only label them")[-1]
+              and "// totals" not in ltext.split("which may only label them")[-1], ltext[-700:])
+        lblock = ("### commented-out code\nremove: all\n%swhy: the requirement asks to remove commented-out code and its "
+                  "markers; nothing that runs changes.\n\n")
+        def with_block(lines):
+            write(lbplan, ltext.replace("## Corrections\n", "## Corrections\n" + lblock % lines, 1)
+                  .replace("## Verdict\n", "## Verdict\nThe commented-out lines and their marker are removed.\n", 1))
+            code, out, err = run("edit_code.py", lb / "label.js", "--out", lb / "out", "--report", lb / "change.md")
+            return code, out + err, (lb / "out" / "label.js").read_text() if (lb / "out" / "label.js").exists() else ""
+        code, out, got = with_block("labels: 4\n")
+        check("edit: \"labels:\" takes out the label named with the code under it; a comment that explains code that stays is kept",
+              code == 0 and "DISABLED BY OPS" not in got and "legacyFee" not in got and "log(\"start\")" not in got
+              and "// the loop below adds the prices\n  for" in got, out + got)
+        code, out, got = with_block("labels: all\n")
+        check("edit: \"labels: all\" is refused: each label that goes is named",
+              code == 3 and "\"labels:\" must be line numbers" in out, out)
+        code, out, got = with_block("labels: 1\n")
+        check("edit: \"labels:\" that names a line the facts do not list is refused",
+              code == 3 and "\"labels:\" names line(s) 1, which the facts do not list" in out, out)
+        code, out, got = with_block("except: 7\nlabels: 6\n")
+        check("edit: \"labels:\" that names the label of code kept by \"except:\" is refused",
+              code == 3 and "\"labels:\" names line(s) 6, but the code under them stays" in out, out)
 
         # ================================================================ edit: a change made from a plan
         ed = tmp / "edit"
@@ -1577,6 +1720,8 @@ The rules file has two assignments in conditions and a misspelt name; it is not 
         write(cmp / "before.js", BEFORE)
         write(cmp / "same.js", BEFORE)
         write(cmp / "swap.js", AFTER_SWAP)
+        write(cmp / "swapif.js", AFTER_SWAP.replace('label = label + (rows.length > 0 ? rows[0] : "none");',
+                                                    'if (rows.length > 0) { label = label + rows[0]; } else { label = label + "none"; }'))
         write(cmp / "split" / "one.js", SPLIT_A)
         write(cmp / "split" / "two.js", SPLIT_B)
 
@@ -1712,7 +1857,7 @@ The rules file has two assignments in conditions and a misspelt name; it is not 
         check("trace: with --notes the explanations of the notes go into the map, without the guidance",
               code == 0 and "The `audit` call replaces `log`, as the requirement asks." in again.split("## Notes and assumptions")[-1]
               and "guidance that is not read" not in again and "Names followed to their new name: 1," in out, out + again[-500:])
-        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swap.js")
+        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swapif.js")
         check("change: one command gives counts, trace and gate",
               all(x in out for x in ("Counts before and after", "Where each line went", "Gate:")) and not err, out + err)
         check("change: gate not passed on a swapped call, and the exit code says so",
@@ -1720,7 +1865,7 @@ The rules file has two assignments in conditions and a misspelt name; it is not 
         code, out, err = run("run.py", "change", cmp / "before.js", cmp / "same.js")
         check("change: gate passes on an identical copy", code == 0 and "Gate: passed" in out, out)
         own_map = docs / "own-map.md"
-        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swap.js", "--map", own_map, "--report", own_map)
+        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swapif.js", "--map", own_map, "--report", own_map)
         check("change: a map with empty notes does not explain anything", code == 3 and "under \"Notes and assumptions\"" in out
               and "fetchRows 2 -> 0" in out, out + err)
         explained = ("The requirement asks for one query: `fetchRows` is replaced by `runQuery`, which is new and needs a test.\n"
@@ -1728,12 +1873,12 @@ The rules file has two assignments in conditions and a misspelt name; it is not 
                      "Strings: \"name = '\", \"owner = '\", \"Total: \" are gone; \" where name = '\", "
                      "\"select * from \" and \"Total = \" are new.\n"
                      "`rows` is new and is assigned from the query; `a` and `b` are gone.\n"
-                     "swap.js:3 joins the key into the query text, as the earlier filter did.\n")
+                     "swapif.js:3 joins the key into the query text, as the earlier filter did.\n")
         own_map.write_text(own_map.read_text().replace("1. None yet.", explained))
-        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swap.js", "--map", own_map, "--report", own_map)
+        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swapif.js", "--map", own_map, "--report", own_map)
         check("change: notes written in the map are kept and settle the gate", code == 0 and "Gate: passed" in out, out + err)
         write(docs / "vague.md", "We replaced fetchRows by runQuery, used ? and : and changed some strings.\n")
-        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swap.js", "--report", docs / "vague.md")
+        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swapif.js", "--report", docs / "vague.md")
         check("change: a call named in passing, without backticks or its count line, is not settled",
               code == 3 and "TO SETTLE  Calls gone from the code or new to it: fetchRows 2 -> 0" in out, out + err)
         write(cmp / "often.js", BEFORE.replace("return label + b.length;", "b = fetchRows(table, key);\n  return label + b.length;"))
@@ -1742,16 +1887,41 @@ The rules file has two assignments in conditions and a misspelt name; it is not 
               "TO SETTLE  Calls made more often than before: fetchRows 2 -> 3" in out, out + err)
         # a difference is settled when the report mentions it
         write(docs / "why.md", "Nothing explained yet.\n")
-        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swap.js", "--report", docs / "why.md")
+        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swapif.js", "--report", docs / "why.md")
         check("change: with a report that explains nothing, the gate stays closed",
               code == 3 and "fetchRows 2 -> 0" in out and "Gate: not passed yet" in out, out + err)
         write(docs / "why.md", explained)
-        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swap.js", "--report", docs / "why.md")
+        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swapif.js", "--report", docs / "why.md")
         check("change: once the report names every difference, the gate passes", code == 0 and "Gate: passed" in out, out + err)
+        write(docs / "why-swap.md", explained.replace("swapif.js", "swap.js"))
+        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swap.js", "--report", docs / "why-swap.md")
+        check("change: a conditional operator (?) new to the code is not settled by naming it, only by rewriting it",
+              code == 3 and "TO SETTLE  Conditional operators (?) the earlier version never uses: ?" in out, out + err)
         write(docs / "why.md", explained.replace(", which is new and needs a test", ""))
-        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swap.js", "--report", docs / "why.md")
+        code, out, err = run("run.py", "change", cmp / "before.js", cmp / "swapif.js", "--report", docs / "why.md")
         check("change: a call the earlier version never made is not settled until its line says it needs a test",
               code == 3 and "runQuery 0 -> 1" in out and "Gate: passed" not in out, out + err)
+
+        # the review's notes answer a claim of the author on a line that starts with the claim; a line that gives only
+        # its first words, cuts it short or drops the closing "..." still answers it, and one that fits two answers neither
+        sys.path.insert(0, str(SCRIPTS))
+        from write_review import answers_to
+        keys = ["log.md: Do not change the output: done: the rename applies only to local names, not insi...",
+                "fix.md: Do not change the output: done: no active line is touched.",
+                "log.md: Name each thing for what it holds: done: 12 names."]
+        tries = {"the claim as the notes give it": (keys[0], 0),
+                 "its first words": ("log.md: Do not change the output", 0),
+                 "the claim cut short, without the ...": ("log.md: Do not change the output: done: the rename applies only to local names, not ins", 0),
+                 "the claim in full": ("log.md: Do not change the output: done: the rename applies only to local names, not inside strings.", 0),
+                 "another case and spacing": ("FIX.md:  do not change the output", 1)}
+        for what, (left, i) in tries.items():
+            got = answers_to(keys, [(left, "holds: the files show it")])
+            check("review: a claim is answered by %s" % what, got[i] == "holds: the files show it" and sum(map(bool, got)) == 1, got)
+        check("review: a line too short to name one claim answers none",
+              answers_to(keys, [("log.md: ", "holds: the files show it")]) == ["", "", ""])
+        check("review: a line that fits two claims answers neither",
+              answers_to(keys + ["log.md: Do not change the output: done: other."], [("log.md: Do not change the output", "holds: yes, here")])
+              == ["", "", "", ""])
 
         # a rename of a name the code never sets, or never reads, is refused: something outside may use that name
         rn = tmp / "rename-edit"
@@ -1901,6 +2071,17 @@ The rules file has two assignments in conditions and a misspelt name; it is not 
         check("fix: switching a commented-out line back on is a proposal for the owner, not applied",
               "owner's to decide" in out and "// drop();" in (sw / "fixed" / "job.x").read_text()
               and "was switched off in the code (commented out)" in swlog, out + err + swlog[-800:])
+        # a correction of one line of a statement over several lines, given as the whole statement
+        ml = tmp / "multiline"
+        write(ml / "job.x", 'text = "a: " + first + "\\n" +\n    "b: " + list[0] + "\\n" +\n    "c: " + third + "\\n" +\n'
+                            '    "d: " + fourth;\nsend(text);\n')
+        code, out, err = run("fix_code.py", ml / "job.x", "--out", ml / "fixed", "--log", ml / "log.md", cwd=ml)
+        write(notes_for(ml / "log.md"), '## Corrections\n### line 2\nafter:\n```\n"b: " + list[1] + "\\n" +\n'
+                                        '"c: " + third + "\\n" +\n"d: " + fourth;\n```\nwhy: the second item is meant, as the '
+                                        'label b says; for the list [x, y] the text read x and now reads y.\n')
+        code, out, err = run("fix_code.py", ml / "job.x", "--out", ml / "fixed", "--log", ml / "log.md", cwd=ml)
+        check("fix: a correction that repeats the lines after it is refused, with the way to give it",
+              code == 3 and "already in the code right after it (lines 3, 4)" in out and "### lines 2-4" in out, out + err)
 
         # ---- code whose variables carry a prefix, with tables in files that it includes
         inc = tmp / "includes"
@@ -2151,6 +2332,32 @@ The rules file has two assignments in conditions and a misspelt name; it is not 
         bare.mkdir()
         code, out, err = run("run.py", "status", cwd=bare)
         check("status: a workspace where nothing was started passes", code == 0 and "No task has been started" in out, out + err)
+
+        # a short line whose long path was replaced is that line rewritten, not one line removed and another added
+        sp = tmp / "short-path"
+        write(sp / "v1" / "job.rules", "table Lists = \"/opt/vendor/product/etc/probes/rules/COMMON/lists.lookup\"\n"
+                                       "@Node = @Agent\n")
+        write(sp / "v2" / "job.rules", "table Lists = \"$RULES_HOME/COMMON/lists.lookup\"\n@Node = @Agent\n")
+        code, out, err = run("run.py", "change", sp / "v1", sp / "v2", "--out", sp / "review.md")
+        check("review of a change: a short line whose long path was replaced is one line rewritten",
+              "Lines: 1 rewritten" in out and ", 0 added" in out, out + err)
+
+        # a step taken in one folder and not yet in another that took the same earlier steps is named, and the gate waits
+        two = tmp / "two-folders"
+        two.mkdir()
+        def record(*reports):
+            (two / ".code-review-tasks.json").write_text(json.dumps(
+                {r: {"task": "edit", "command": "python3 run.py edit %s" % r, "gate": "passed", "at": 100 + i}
+                 for i, r in enumerate(reports)}))
+            return run("run.py", "status", cwd=two)
+        code, out, err = record("a/reports/review.md", "b/reports/review.md", "a/reports/clean.md", "a/reports/names.md")
+        check("status: the next step one folder took and another did not is named as not started, and the gate waits",
+              code == 3 and "  b/reports/clean.md   (as a/reports/clean.md)" in out and "b/reports/names.md" not in out
+              and "Gate: not passed yet. 1 report(s) that another folder has are not started." in out, out + err)
+        code, out, err = record("a/reports/review.md", "b/reports/review.md", "a/reports/clean.md", "b/reports/clean.md")
+        check("status: when every folder took the same steps, the gate passes", code == 0 and "Not started" not in out, out + err)
+        code, out, err = record("a/reports/review.md")
+        check("status: a first step taken in one folder only is not a gap", code == 0 and "Not started" not in out, out + err)
 
         # ---- change: a character outside ASCII that the earlier version does not hold is listed by the gate
         na = tmp / "ascii"

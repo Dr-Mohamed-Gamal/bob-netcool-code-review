@@ -235,6 +235,9 @@ def line_changes(before_names, after_names, hash_comments=False):
             alike = {(i, j): difflib.SequenceMatcher(None, keys_a[i], keys_b[j]).ratio() for i in olds for j in news} \
                 if len(olds) * len(news) <= 2500 else {}
             best = {}                                # the pairing that keeps the order and holds the most alike lines
+            # where the run has as many later lines as earlier ones, line for line, less alike is enough: a short
+            # line whose long path or value was replaced is still that line rewritten
+            enough = 0.4 if len(olds) == len(news) else 0.6
             for x in range(len(olds), -1, -1):
                 for y in range(len(news), -1, -1):
                     if x == len(olds) or y == len(news):
@@ -242,7 +245,7 @@ def line_changes(before_names, after_names, hash_comments=False):
                         continue
                     options = [(best[(x + 1, y)][0], "old"), (best[(x, y + 1)][0], "new")]
                     score = alike.get((olds[x], news[y]), 0.0)
-                    if score >= 0.6 and a[olds[x]].strip() and b[news[y]].strip() \
+                    if score >= enough and a[olds[x]].strip() and b[news[y]].strip() \
                             and comment(olds[x], a[olds[x]]) == b[news[y]].strip().startswith(signs + ("/*", "*/")):
                         options.append((best[(x + 1, y + 1)][0] + score, "pair"))
                     best[(x, y)] = max(options, key=lambda o: o[0])
@@ -285,6 +288,22 @@ def spans(numbers):
 
 def clip(text, width=120):
     return text if len(text) <= width else text[:width - 3] + "..."
+
+
+def answers_to(keys, found):
+    """The answer to each of keys from the notes' (left, right) lines. A line answers a key when its left side is
+    the key, or the start of it (24 characters or more), or the key with more after it; case, spacing and a
+    closing "..." do not count. A line that would answer two keys answers neither."""
+    norm = lambda s: re.sub(r"\s+", " ", re.sub(r"(\.\.\.|…)\s*$", "", s)).strip().lower()
+    nk = [norm(k) for k in keys]
+    out = {}
+    for left, right in found:
+        l = norm(left)
+        hits = [i for i, k in enumerate(nk) if k == l] or \
+               [i for i, k in enumerate(nk) if (len(l) >= 24 and k.startswith(l)) or (k and l.startswith(k))]
+        if len(hits) == 1 and not out.get(hits[0]):
+            out[hits[0]] = right
+    return [out.get(i, "") for i in range(len(keys))]
 
 
 def author_claims(report):
@@ -541,17 +560,17 @@ def main():
                 out.append((left.strip(), right.strip(" |").strip()))
         return out
 
-    checks = dict(pairs(part(found_parts, "checks")))
-    check_rows = [(c, checks.get(c, "")) for c in CHECKS]
+    check_rows = list(zip(CHECKS, answers_to(CHECKS, pairs(part(found_parts, "checks")))))
     for c, answer in check_rows:
         if not first_run and (len(answer) < 12 or answer.lower() in ("yes", "ok", "done", "checked")):
             problems.append("check \"%s\": say what you found and where you looked." % c)
-    claim_answers = dict(pairs(part(found_parts, "claims")))
+    claim_keys = ["%s: %s" % (name, claim) for name, claim in claims]
     claim_rows = []
-    for name, claim in claims:
-        answer = claim_answers.get("%s: %s" % (name, claim), "")
+    for (name, claim), key, answer in zip(claims, claim_keys, answers_to(claim_keys, pairs(part(found_parts, "claims")))):
         if not first_run and not re.match(r"^(holds|does not hold)\b.{8,}", answer, re.I | re.S):
-            problems.append("claim of %s: answer \"holds: <the evidence>\" or \"does not hold: <the evidence>\"." % name)
+            problems.append("claim of %s \"%s\": %s. The line starts with the claim, or its first words, then \" | \", "
+                            "then \"holds: <the evidence>\" or \"does not hold: <the evidence>\"."
+                            % (name, clip(claim, 70), "the answer has no evidence" if answer else "no line answers it"))
         claim_rows.append((name, claim, answer))
     coverage = pairs(part(found_parts, "coverage"))
     if docs and not coverage and not first_run:

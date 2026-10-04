@@ -91,6 +91,13 @@ CONTROL_WORDS = {"if", "elseif", "elsif", "elif", "while", "until", "unless", "f
 SIZE_WORDS = {"length", "len", "count", "size", "sizeof", "isset", "empty", "isempty", "isnull",
               "defined", "exists", "is_null", "is_array"}
 HANDLER_WORDS = {"catch", "handle", "except", "rescue"}
+# what a log line can say the code does, when the statement that does it can stand alone on a line
+ACTION_WORDS = ("discard", "drop", "delete", "remove", "reject", "suppress", "block", "ignore", "skip")
+# statements that end the work on the current item, and so do what such a log announces
+LEAVE_STATEMENTS = ("return", "continue", "break", "exit", "next", "last")
+NEGATION = re.compile(r"(?<![a-z])(not|no|never|rejected|skipped|disabled|cancell?ed|prevented|instead)(?![a-z])", re.I)
+ITEM_ID = re.compile(r'\bid\s*=\s*["\']([a-z][a-z0-9_]*?)([A-Z][a-z]+)["\']')
+ERROR_NAME = re.compile(r"\b[A-Za-z]\w*(?:Exception|Error)\b")
 COMMAND_WORDS = {"system", "exec", "eval", "popen", "shell_exec", "passthru", "proc_open", "execsync",
                  "spawnsync", "execfile"}
 CREDENTIAL_NAME = re.compile(r"(?i)(password|passwd|pwd|secret|api_?key|(auth|access|bearer)_?token)$")
@@ -835,6 +842,38 @@ def structure_checks(scan, name, toks, ends, in_cond, in_log, conds):
         if only_logs:
             hit("handler", t.line)
 
+    # an error handler whose message names another error than the one it handles
+    for i, t in enumerate(toks):
+        if not is_word(t, HANDLER_WORDS) or is_op(at(i - 1), ".", "->", "::"):
+            continue
+        j = i + 1
+        while j < n and not is_op(toks[j], "{", ";") and toks[j].line <= t.line + 1:
+            j = close_of(toks, j) + 1 if is_op(toks[j], "(") else j + 1
+        if not is_op(at(j), "{") or j not in match:
+            continue
+        handled = {x.val.lower() for x in toks[i + 1:j] if x.kind == "NAME" and ERROR_NAME.fullmatch(x.val)}
+        if not handled:
+            continue
+        for x in toks[j + 1:match[j]]:
+            if x.kind != "STR":
+                continue
+            other = [w for w in ERROR_NAME.findall(x.val)
+                     if w.lower() not in handled and w.lower() not in ("exception", "error")]
+            if other:
+                hit("handlername", x.line, "handles %s; the message names %s" % (
+                    " or ".join(sorted(v for v in (y.val for y in toks[i + 1:j]) if v.lower() in handled)), other[0]))
+                break
+
+    # two ; in a row, outside the brackets of a for
+    depth = 0
+    for i, t in enumerate(toks):
+        if is_op(t, "("):
+            depth += 1
+        elif is_op(t, ")"):
+            depth = max(0, depth - 1)
+        elif is_op(t, ";") and depth == 0 and is_op(at(i + 1), ";") and at(i + 1).line == t.line:
+            hit("doublesemi", t.line)
+
     # text in strings, logging left out: a query joined with a value; an environment name,
     # an address or a credential
     for i, t in enumerate(toks):
@@ -876,6 +915,63 @@ def structure_checks(scan, name, toks, ends, in_cond, in_log, conds):
             scan.declared[t.val].append((name, t.line))
         else:
             scan.mentioned[t.val] += 1
+
+
+def line_checks(scan, name, ext):
+    """Checks on the lines as written, comments and markup included."""
+    lines = [l.rstrip("\r") for l in scan.lines[name]]
+    hit = lambda key, line, note="": scan.hits[key].append((name, line, note))
+
+    # a log that says the code does something (discards, drops, skips ...) while no statement after it does it:
+    # most often the statement was commented out, and the log still reports it
+    marks = {"slash": ("//",), "hash": ("#",), "both": ("//", "#"), "dash": ("--",)}.get(scan.styles.get(name), ())
+    log_line = re.compile(r"^\s*(?:\w+\s*\.\s*)*(?:%s)\s*\(" % "|".join(sorted(LOG_CALLS)), re.I)
+    for i, l in enumerate(lines):
+        if not marks or not log_line.match(l) or NEGATION.search(l):
+            continue
+        said = sorted(a for a in ACTION_WORDS if re.search(r"(?<![a-z])%s(?:s|ed|d|ing|ping|ped)?(?![a-z])" % a, l, re.I))
+        if not said:
+            continue
+        done, off = False, None
+        for k in range(i + 1, min(len(lines), i + 5)):
+            s = lines[k].strip()
+            mark = next((m for m in marks if s.startswith(m)), None)
+            if mark:
+                w = re.match(r"([A-Za-z_]+)\s*(\(.*\))?\s*;?$", s[len(mark):].strip())
+                if w and w.group(1).lower() in said and off is None:
+                    off = k + 1
+                continue
+            if not s or s.startswith(("}", ")")) or log_line.match(lines[k]):
+                continue
+            done = bool(re.match(r"(%s)\b" % "|".join(said + list(LEAVE_STATEMENTS)), s, re.I)
+                        or re.search(r"(?<![A-Za-z])(%s)\w*\s*\(" % "|".join(said), s, re.I))
+            break
+        if not done:
+            hit("announced", i + 1, "the log says %s; %s" % (said[0], "the %s on line %d is commented out" % (said[0], off)
+                                                              if off else "no statement after it does it"))
+
+    # rows of one kind (ids that are a name and a suffix: aCritical, aMajor) where a row carries the
+    # name of one item in its id and names another item of the same kind elsewhere on its line
+    if ext not in PAGE_TYPES:
+        return
+    suffixes = defaultdict(set)
+    for l in lines:
+        for base, suffix in ITEM_ID.findall(l):
+            suffixes[base.lower()].add(suffix)
+    items = {b for b, s in suffixes.items() if len(s) >= 2 and len(b) >= 3}
+    if len(items) < 3:
+        return
+    for number, l in enumerate(lines, 1):
+        m = ITEM_ID.search(l)
+        if not m or m.group(1).lower() not in items:
+            continue
+        own, rest = m.group(1).lower(), l[:m.start()] + l[m.end():]
+        for other in sorted(items):
+            if other == own or other in own or own in other:
+                continue
+            if re.search(r"(?<![A-Za-z0-9])%s(?![A-Za-z0-9])" % re.escape(other), rest, re.I):
+                hit("otheritem", number, "the row of %s names %s" % (m.group(1), other))
+                break
 
 
 class Scan:
@@ -1375,6 +1471,7 @@ class Scan:
                 self.early.append((name, key, line, first_set[key][1], loop, sure))
         self.set_in_function[name] = set_in_function
         structure_checks(self, name, toks, ends, in_cond, in_log, conds)
+        line_checks(self, name, ext)
 
         # 6 and 7. text held in strings, logging left out
         stmt_tags = defaultdict(lambda: [0, 0, 0])
@@ -1708,7 +1805,11 @@ class Scan:
                                                                        ", ".join(str(n) for n in sorted(set(lines)))))
                                for (f, note), lines in grouped.items()]
         # a value replaced before anything reads it: the later assignment is in the same block as the earlier
-        # one, or in a block around it, so it runs whenever the earlier one ran; loops are left out
+        # one, or in a block around it, so it runs whenever the earlier one ran; loops are left out, and so is a
+        # pair with an include between them: the code it brings in is not read here, and may read the value
+        included_at = defaultdict(set)
+        for f, line, _ in self.includes:
+            included_at[f].add(line)
         for k in sorted(self.sets, key=str.lower):
             if outside(k) or k in self.filled:
                 continue
@@ -1722,8 +1823,8 @@ class Scan:
                 pf, pline, plast, pown, pchain, plooped = events[n - 1]
                 if pf != f or plooped or pchain[:len(chain)] != chain or pline == line:
                     continue
-                if any(plast < r <= line for r in read_lines[f]) or any(plast < r < line for r in ()):
-                    continue                     # something reads it in between
+                if any(plast < r <= line for r in read_lines[f]) or any(plast < r < line for r in included_at[f]):
+                    continue                     # something reads it in between, or may: an include
                 if (f, line, k) in self.hits["twice"]:
                     continue                     # two statements in a row: reported there
                 j = n - 1                        # a value built up line by line: from its first line
@@ -1746,6 +1847,15 @@ class Scan:
                 if earlier:
                     self.hits["reapplied"].append((f, line, "%s — \"%s\" is replaced by \"%s\" on line %d and again here" % (
                         k, plain(pattern), plain(earlier[-1][3]), earlier[-1][1])))
+        for hit in self.hits["announced"]:
+            self.for_owner[("announced",) + hit] = (
+                "The log says the code does this, and no statement after it does it (often it was commented out). "
+                "Was the action switched off on purpose? If so, the log should say what happens; if not, the statement is "
+                "to be put back.")
+        for hit in self.hits["otheritem"]:
+            self.for_owner[("otheritem",) + hit] = (
+                "This row belongs to one item and names another. Is that meant, or was the row copied from the other "
+                "item without all its names being changed? If it is meant, the item's other rows may need the same.")
         for hit in self.hits["mixed"]:
             self.for_owner[("mixed",) + hit] = (
                 "The condition mixes && and || with no brackets. Which parts belong together?")
@@ -1844,6 +1954,16 @@ CHECKS = [
      "A name is given a value, and a later line that always runs after it gives it another value before anything reads the first."),
     ("reapplied", "Replacement made twice on the same value",
      "The replacement puts back the text it looks for, so a second pass changes what the first pass produced."),
+    ("announced", "Log that announces an action that does not happen",
+     "A log line says the code does something (discard, drop, delete, skip ...), and no statement after it does it: "
+     "most often the statement was commented out. The log reports what does not happen."),
+    ("otheritem", "Row that names another item",
+     "In rows of one kind (ids such as aCritical, aMajor), a row carries one item's name in its id and names another "
+     "item elsewhere on its line, for example a tile whose filter selects another device."),
+    ("handlername", "Error handler whose message names another error",
+     "The handler catches one error, and its message names a different one. A reader of the log looks for the wrong failure."),
+    ("doublesemi", "Two ; in a row",
+     "An empty statement. It does nothing, but it may mark a statement that was cut or a line edited by mistake."),
 ]
 
 

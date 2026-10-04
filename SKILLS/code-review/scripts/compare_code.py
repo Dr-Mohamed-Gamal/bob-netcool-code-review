@@ -328,8 +328,17 @@ def main():
          [call(n) for n in other if a_calls[n] > b_calls[n] and not swapped],
          "work the earlier version did not do, or did less often: say what asks for it, or undo it. To explain "
          "one in the report, write its count line as shown here, or its name in backticks"),
+        ("Conditional operators (?) the earlier version never uses",
+         [(o, (lambda rep, o=o: any("`%s`" % o in l and re.search(r"\bV-\d+", l) for l in rep["lines"]))
+           if args.review else (lambda rep: False)) for o in new_ops if "?" in o],
+         "a finding in a review: give each one a V- finding that names the operator in backticks"
+         if args.review else
+         "the language of the code may not have this operator, and nothing in the code shows that it does: this cannot "
+         "be explained, only rewritten with what the earlier version already uses (for a value chosen by a condition, "
+         "an if / else that sets it)"),
         ("Operators, keywords and member names new to the code",
-         [(x, says("`%s`" % x)) for x in new_ops + new_words] + [(m, says(m.lstrip("."))) for m in new_members],
+         [(x, says("`%s`" % x)) for x in [o for o in new_ops if "?" not in o] + new_words]
+         + [(m, says(m.lstrip("."))) for m in new_members],
          "rewrite with what the earlier version already uses, or say that it needs a test"),
         ("Strings gone, new, or used a different number of times",
          [(quoted(k, 50), says(k.strip())) for _, k, _ in missing] + [(quoted(k, 50), says(k.strip())) for _, k, _, _ in fewer]

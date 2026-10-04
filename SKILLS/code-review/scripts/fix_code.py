@@ -179,7 +179,13 @@ def skeleton(log, command, todo, rest, owner):
           "     Do not repeat these questions under \"Questions for the owner\".",
           "     A correction that adds a call, an operator or a keyword the code did not use before is listed by the",
           "     gate: prefer what the code already uses; if it is needed, name it in \"why:\" the way the gate shows it",
-          "     (a call as `name 6 -> 7` or in backticks, an operator in backticks) and say that it needs a test. -->", "",
+          "     (a call as `name 6 -> 7` or in backticks, an operator in backticks) and say that it needs a test.",
+          "     A conditional operator (? :) that the code does not already use is refused: the language may not have it.",
+          "     Write an if / else instead. To correct one line of a statement that runs over several lines, give that",
+          "     line only; the lines after it stay as they are.",
+          "     Only a small correction is made in the copy: one line in the place of one line, or one or two lines taken",
+          "     out. A correction that writes more or fewer lines than it replaces, or takes out more lines, is listed for",
+          "     the owner with its text, as a proposal, and the copy keeps the original lines. -->", "",
           "## Left for the owner",
           "<!-- One line for each finding you do not correct because the choice is the owner's. Start with its ID,",
           "     then a colon, then only the question (the script adds the line):",
@@ -279,6 +285,18 @@ def main():
         if any(first <= z and a <= last for a, z in parts for first, (last, _, _) in blocks[name].items()):
             problems.append("%s: another correction in the notes already covers one of these lines." % label)
             continue
+        if not removes and len(new) > b["last"] - b["first"] + 1:   # more lines than it replaces: are they already there?
+            extra = new[b["last"] - b["first"] + 1:]
+            following = [l.rstrip("\r") for l in scan.lines[name][b["last"]:b["last"] + len(extra)]]
+            norm = lambda s: re.sub(r"\s+", " ", s).strip()
+            same = [b["last"] + 1 + k for k, (x, y) in enumerate(zip(extra, following)) if norm(x) and norm(x) == norm(y)]
+            if len(same) >= 2 and len(same) * 2 >= len(extra):
+                problems.append("%s: the new text holds %d lines that are already in the code right after it (lines %s), "
+                                "so they would be there twice. To change one line of a statement that runs over several "
+                                "lines, give that line only, under its own \"### line N\"; to rewrite the whole statement, "
+                                "write \"### lines %d-%d\"." % (label, len(same), ", ".join(map(str, same)),
+                                                                b["first"], b["last"] + len(extra)))
+                continue
         covered = [r for r in findings if r["decision"].startswith("Finding")
                    and (not r["file"] or by_name.get(Path(r["file"]).name) == name)
                    and any(a <= n <= z for a, z in parts for n in r["lines"])]
@@ -310,6 +328,29 @@ def main():
                     b["owner"] = "Nothing in the code sets %s. The value proposed in its place is not shown by the code " \
                                  "or the requirement to be the one meant: which value is meant?" % m.group(1)
                     b["reason"] = "it puts another value in the place of %s, which nothing sets" % m.group(1)
+                    break
+        if not b.get("owner"):                   # only a small correction is made without the owner: one line for one
+            span = sum(z - a + 1 for a, z in parts)          # line, or one or two lines taken out
+            if removes and span > 2:
+                b["owner"] = ("This correction takes out %d lines. The fix makes such a change only when the owner agrees: "
+                              "is it right?" % span)
+                b["reason"] = "it takes out more than two lines"
+            elif not removes and len(new) != span:
+                b["owner"] = ("This correction writes %d line(s) in the place of %d. The fix makes such a change only when "
+                              "the owner agrees: is it right?" % (len(new), span))
+                b["reason"] = "it adds or takes out lines, which the fix makes only when the owner agrees"
+        if not b.get("owner") and removes:       # an assignment taken out while code that is not here runs after it
+            for n in (n for a, z in parts for n in range(a, z + 1)):
+                m = scan_code.DEFINES.match(scan.lines[name][n - 1])
+                if not m:
+                    continue
+                again = min([ln for f, ln in scan.assigns.get(m.group(1), []) if f == name and ln > n], default=None)
+                brought = [ln for f, ln, _ in scan.includes if f == name and ln > n and (again is None or ln < again)]
+                if brought:
+                    b["owner"] = ("Line %d sets %s, and the include on line %d runs before %s; the code it brings in is "
+                                  "not in the workspace and may read %s. Is the line unused?"
+                                  % (n, m.group(1), brought[0], "it is set again" if again else "the end", m.group(1)))
+                    b["reason"] = "an include on line %d may read the value it sets" % brought[0]
                     break
         if b.get("owner"):                       # what the owner has to decide is proposed, not done
             proposals.append((name, parts, [] if removes else new, b))
