@@ -82,7 +82,7 @@ footer { border-top: 1px solid var(--line); margin-top: 56px; padding-top: 16px;
     <li>the device is missing from one of the select lists, so "select all" leaves it out;</li>
     <li>an element id is mistyped, so its count never shows.</li>
   </ul>
-  <p>So the change is made by a script, and Bob only decides what to copy and what to call it.</p>
+  <p>So the change is made by the skill, and Bob only decides what to copy and what to call it.</p>
 </section>
 
 <section>
@@ -94,7 +94,7 @@ replace:
   F_SW1_ -> F_SW2_
   SW1 -> SW2
 why: the owner asks for the device SW2, with the same tiles, filters and selection as SW1.</pre>
-  <p>The script then:</p>
+  <p>The skill then:</p>
   <ul>
     <li>copies the model's block right after itself, with only those replacements;</li>
     <li>finds every other line of the page that names the model (the select lists) and copies each one right after itself, the same way, so the new device is wherever the model is;</li>
@@ -112,7 +112,7 @@ why: the owner asks for the device SW2, with the same tiles, filters and selecti
   <p>The skill's diagnosis task used to be instructions only. It is now a command with a gate, like the others:</p>
   <ul>
     <li>Bob writes the symptom, in the reporter's words, and the names it involves;</li>
-    <li>the script lists every line of the code that names them, with the scan hits on those lines;</li>
+    <li>the skill lists every line of the code that names them, with the scan hits on those lines;</li>
     <li>Bob writes each possible cause with its line, a quote that must be on that line, how the line produces the symptom, and whether the evidence shows it, rules it out, or which test would decide it;</li>
     <li>the gate passes only when a cause is shown, or every remaining cause names the test that decides it. Nothing in the code is changed.</li>
   </ul>
@@ -164,13 +164,13 @@ Do not fix anything.</pre>
   </div>
   <div class="why"><h3>What does the review check, and what can it miss?</h3>
 <p>The review works in two passes:</p>
-<ol><li><strong>The comparison (a script)</strong> lists every line that differs between the copy and the original page, with the strings and calls each difference adds or removes. Nothing that changed can be left out of the list, not even a lost line or a changed line ending.</li><li><strong>Bob</strong> judges each difference: intended (part of the request) or unintended, with the reason. It also reads the changed lines and the lines that use the same names, such as the select lists, for problems a comparison cannot show, such as a tile that still opens the model's filter.</li></ol>
+<ol><li><strong>The comparison (done by the skill)</strong> lists every line that differs between the copy and the original page, with the strings and calls each difference adds or removes. Nothing that changed can be left out of the list, not even a lost line or a changed line ending.</li><li><strong>Bob</strong> judges each difference: intended (part of the request) or unintended, with the reason. It also reads the changed lines and the lines that use the same names, such as the select lists, for problems a comparison cannot show, such as a tile that still opens the model's filter.</li></ol>
 <p>The gate does not pass while any difference is left unjudged.</p>
 <p><strong>The limits.</strong> The review sees only this page. It cannot see the scripts the page loads from the server, and it does not open the page in a browser. What only the owner can confirm goes into the report as a question.</p>
   </div>
   <div class="why"><h3>How is the cause found, and what if it is not in the page?</h3>
 <p>The diagnosis works in two passes:</p>
-<ol><li><strong>The script</strong> lists every line that names what the symptom involves (the two devices, their tiles, their filters), with the scan's hits on those lines.</li><li><strong>Bob</strong> reads those lines and compares the faulty tiles with tiles that work. Each possible cause gets its line, a quote from that line, how it produces the symptom, and a status: <strong>shown</strong> (the line itself proves it), <strong>ruled out</strong>, or <strong>open</strong>, with the test that would decide it. The gate checks that every quote is on its line.</li></ol>
+<ol><li><strong>The skill</strong> lists every line that names what the symptom involves (the two devices, their tiles, their filters), with the scan's hits on those lines.</li><li><strong>Bob</strong> reads those lines and compares the faulty tiles with tiles that work. Each possible cause gets its line, a quote from that line, how it produces the symptom, and a status: <strong>shown</strong> (the line itself proves it), <strong>ruled out</strong>, or <strong>open</strong>, with the test that would decide it. The gate checks that every quote is on its line.</li></ol>
 <ul><li><strong>If the cause is not in the page</strong>, because it is in a script the page loads, in the Impact policy or in the events, the diagnosis says that no cause is shown in the page and names the test that would decide it.</li><li><strong>If the code may be doing what its owner intended</strong>, for example a filter that covers two devices on purpose, the diagnosis asks the owner instead of calling it a bug. That is why the prompt says "Do not fix anything".</li></ul>
 <p><strong>The limits.</strong> The diagnosis is a reading of the code; nothing is run.</p>
   </div>

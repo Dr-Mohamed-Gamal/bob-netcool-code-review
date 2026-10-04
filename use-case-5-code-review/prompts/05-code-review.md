@@ -16,7 +16,7 @@ Do not fix anything.
 |---|---|
 | **Why this step** | An independent check of the final copy against the original: everything that changed, judged, before anyone deploys it |
 | **Reads** | The final copy, the original, and every earlier report and notes file |
-| **The scripts** | Compare the two versions line by line, count the defects before and after, group the differences (corrections, removals, renames, path changes), and check the claims of the earlier reports |
+| **The skill** | Compare the two versions line by line, count the defects before and after, group the differences (corrections, removals, renames, path changes), and check the claims of the earlier reports |
 | **Bob decides** | For each difference: no change of behaviour, intended (and by which report), or unintended; what reading adds; the operator's open decisions as questions |
 | **The gate refuses** | Any difference left unjudged; a claim of an earlier report that the files do not bear out |
 | **Writes** | A review of the whole change per input |

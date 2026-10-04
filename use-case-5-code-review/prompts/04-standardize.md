@@ -16,9 +16,9 @@ Do not change the ticket content or the events, or any folder or file name after
 
 | | |
 |---|---|
-| **Why this step** | Names that say what the data is, and paths that move with the installation: the two standardizations the documents ask for that a script can make reliably |
+| **Why this step** | Names that say what the data is, and paths that move with the installation: the two standardizations the documents ask for that the skill can make reliably |
 | **Reads** | The step-2 copy and the document's item on names (policy) or paths (rules) |
-| **The scripts** | Propose a camelCase name for every local variable and apply the map; refuse to rename a name another component may read (event fields, names read before they are set, names that may come from outside); for the rules, replace the prefix with one rule on the include and table lines only |
+| **The skill** | Propose a camelCase name for every local variable and apply the map; refuse to rename a name another component may read (event fields, names read before they are set, names that may come from outside); for the rules, replace the prefix with one rule on the include and table lines only |
 | **Bob decides** | Which proposed names to take, which to adjust, and which to leave for the operator to confirm |
 | **The gate refuses** | A rename that merges two names or touches an event field; a path line where anything other than the prefix changed |
 | **Writes** | The standardized copy (step 3) and a standards report per input |

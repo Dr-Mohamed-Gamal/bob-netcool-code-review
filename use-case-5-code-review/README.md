@@ -68,7 +68,7 @@ Bob is opened on one workspace folder that holds both inputs, each in its own fo
 
 | Part | What it does |
 |---|---|
-| **The skill** (`.bob/skills/code-review/`) | Instructions for five tasks (review code, fix, change existing code, review a change, diagnose) and Python scripts that do the mechanical work. Generic: it names no client, product or language |
+| **The skill** (`.bob/skills/code-review/`) | Instructions for five tasks (review code, fix, change existing code, review a change, diagnose) and the code that does the mechanical work. Generic: it names no client, product or language |
 | **A short rule** (`.bob/rules/`) | Tells Bob to use the skill before any review or change, to run its commands from the workspace root, and to check where the work stands before every reply |
 
 Each task is one command, run two or three times. The first run scans the code and writes a **notes file** with everything Bob has to decide. Bob writes its judgements there. The next run applies the notes, writes the report and the changed copy, and compares the new version with the old one. Every command ends with a `Gate:` line; a task is finished only when it prints `Gate: passed`.
@@ -77,7 +77,7 @@ Each task is one command, run two or three times. The first run scans the code a
 bob-workspace/
 ├── .bob/
 │   ├── rules/review-and-change-code.md
-│   └── skills/code-review/          # SKILL.md + scripts/
+│   └── skills/code-review/          # the skill: SKILL.md and its code
 ├── impact-policy/
 │   ├── inputs/                      # <policy>.ipl + the refactoring requirement
 │   ├── refactored/                  # step-1-fixed/ → step-2-cleaned/ → step-3-standardized/
@@ -104,7 +104,7 @@ Do not change the policy or the rules file.
 |---|---|
 | **Why this step** | Before anything changes, list what is wrong and what each defect does to a ticket or an event. The operator sees the size of the problem, and every later step refers back to this list |
 | **Reads** | The original policy and rules file, each with its document; the lookup files when a finding depends on them |
-| **The scripts** | Scan the code for 37 kinds of defect (a name misspelt, read before it is set or never used; a single `=` where a comparison is meant; an XML entity or tag not closed; brackets that do not balance; branches that repeat each other; code that cannot run), say for each hit where its value goes, and write the notes file with every hit to decide |
+| **The skill** | Scan the code for 37 kinds of defect (a name misspelt, read before it is set or never used; a single `=` where a comparison is meant; an XML entity or tag not closed; brackets that do not balance; branches that repeat each other; code that cannot run), say for each hit where its value goes, and write the notes file with every hit to decide |
 | **Bob decides** | Whether each hit is a real defect, with a reason the workspace shows; by reading the whole file once, the defects the scan cannot see (see below); for each finding its effect, the fix and how sure it is; the questions only the operator can answer |
 | **The gate refuses** | A hit left undecided; a finding whose quoted words are not on the line it cites; a "not a defect" without the evidence that settles it |
 | **Writes** | A defect register per input, with the notes file that holds Bob's judgements |
@@ -114,7 +114,7 @@ Do not change the policy or the rules file.
 
 The 37 kinds are only the first pass. Prompt 1 works in two passes:
 
-1. **The scan (a script)** finds the 37 kinds of defect that readers most often miss. It finds the same things every time.
+1. **The scan (done by the skill)** finds the 37 kinds of defect that readers most often miss. It finds the same things every time.
 2. **The reading (Bob).** The skill makes Bob read the whole file once, from the first line to the last, for what a scan cannot see: wrong logic, code that can never run, a value that ends up in the wrong field. Each defect found this way goes into the register under **Findings from reading**, with its line, the quoted code, what it does, its effect on the ticket or the event, the fix, and how sure Bob is. The gate checks that the quoted words are on the line the finding cites.
 
 Kinds of defect that only reading finds, for example:
@@ -126,7 +126,7 @@ Kinds of defect that only reading finds, for example:
 
 In the clean run, reading added findings of this kind in both files.
 
-**The limits.** Reading is Bob's judgement, as a human reviewer's is. The gate checks that each finding quotes its line, but no script can prove that every defect was found, so a person should read the findings from reading before they go to the operator. Some defects cannot be seen in the code at all, such as a wrong value in a lookup table or a difference from the live system. That is why every register ends with **Not checked**: nothing was run on an Impact server or a probe.
+**The limits.** Reading is Bob's judgement, as a human reviewer's is. The gate checks that each finding quotes its line, but nothing can prove that every defect was found, so a person should read the findings from reading before they go to the operator. Some defects cannot be seen in the code at all, such as a wrong value in a lookup table or a difference from the live system. That is why every register ends with **Not checked**: nothing was run on an Impact server or a probe.
 
 ### 2 · Fix — corrected copy and change log
 
@@ -140,7 +140,7 @@ Do not decide what is the client's to decide.
 |---|---|
 | **Why this step** | Correct what is plainly wrong, in a copy, so the original stays as the baseline and every change is written down |
 | **Reads** | The original file and its defect register |
-| **The scripts** | Make every correction that has only one possible form, apply Bob's corrections, and compare the copy with the original. A correction tagged with the wrong finding is refused; switching commented-out code back on becomes a question, not a fix |
+| **The skill** | Make every correction that has only one possible form, apply Bob's corrections, and compare the copy with the original. A correction tagged with the wrong finding is refused; switching commented-out code back on becomes a question, not a fix |
 | **Bob decides** | The correction of each finding the code itself settles, and a specific question for each one only the operator can settle (a filter switched off on purpose, an address written into the code) |
 | **The gate refuses** | A High finding with neither a correction nor a specific question; a new call, operator or non-ASCII character the original did not have, unless its reason is written; notes left untouched |
 | **Writes** | The corrected copy (step 1) and a change log per input |
@@ -160,7 +160,7 @@ Do not change the ticket content or the events.
 |---|---|
 | **Why this step** | Remove the code switched off over the years, so engineers read only what runs. Both documents ask for it, and it is the change most often done carelessly by hand |
 | **Reads** | The step-1 copy and the document's item on commented-out code |
-| **The scripts** | List every commented-out line and block, telling them apart from comments that explain live code; remove what Bob confirms, in a copy; refuse to remove a comment that stands right above a live line that stays; compare the copy with step 1 |
+| **The skill** | List every commented-out line and block, telling them apart from comments that explain live code; remove what Bob confirms, in a copy; refuse to remove a comment that stands right above a live line that stays; compare the copy with step 1 |
 | **Bob decides** | Which commented-out code goes (normally all of it), and which comment is an explanation to keep |
 | **The gate refuses** | A removal that changes a live line or leaves half a block; an item of the document left unaccounted for |
 | **Writes** | The cleaned copy (step 2) and a clean-up report per input |
@@ -178,9 +178,9 @@ Do not change the ticket content or the events, or any folder or file name after
 
 | | |
 |---|---|
-| **Why this step** | Names that say what the data is, and paths that move with the installation: the two standardizations the documents ask for that a script can make reliably |
+| **Why this step** | Names that say what the data is, and paths that move with the installation: the two standardizations the documents ask for that the skill can make reliably |
 | **Reads** | The step-2 copy and the document's item on names (policy) or paths (rules) |
-| **The scripts** | Propose a camelCase name for every local variable and apply the map; refuse to rename a name another component may read (event fields, names read before they are set, names that may come from outside); for the rules, replace the prefix with one rule on the include and table lines only |
+| **The skill** | Propose a camelCase name for every local variable and apply the map; refuse to rename a name another component may read (event fields, names read before they are set, names that may come from outside); for the rules, replace the prefix with one rule on the include and table lines only |
 | **Bob decides** | Which proposed names to take, which to adjust, and which to leave for the operator to confirm |
 | **The gate refuses** | A rename that merges two names or touches an event field; a path line where anything other than the prefix changed |
 | **Writes** | The standardized copy (step 3) and a standards report per input |
@@ -198,7 +198,7 @@ Do not fix anything.
 |---|---|
 | **Why this step** | An independent check of the final copy against the original: everything that changed, judged, before anyone deploys it |
 | **Reads** | The final copy, the original, and every earlier report and notes file |
-| **The scripts** | Compare the two versions line by line, count the defects before and after, group the differences (corrections, removals, renames, path changes), and check the claims of the earlier reports |
+| **The skill** | Compare the two versions line by line, count the defects before and after, group the differences (corrections, removals, renames, path changes), and check the claims of the earlier reports |
 | **Bob decides** | For each difference: no change of behaviour, intended (and by which report), or unintended; what reading adds; the operator's open decisions as questions |
 | **The gate refuses** | Any difference left unjudged; a claim of an earlier report that the files do not bear out |
 | **Writes** | A review of the whole change per input |
@@ -206,7 +206,7 @@ Do not fix anything.
 
 ### What the prompts leave out, and why
 
-The operator's documents also ask for a split into a modular structure, merged database queries, rewritten log statements and lookup files for hard-coded values. Those were tried and kept aside: where Bob had to write new code itself, the result varied from run to run and was sometimes wrong while its gate passed. The five prompts keep to what the scripts make reliable.
+The operator's documents also ask for a split into a modular structure, merged database queries, rewritten log statements and lookup files for hard-coded values. Those were tried and kept aside: where Bob had to write new code itself, the result varied from run to run and was sometimes wrong while its gate passed. The five prompts keep to what the skill makes reliable.
 
 ## From Input to Output
 
@@ -251,7 +251,7 @@ The final review (prompt 5) compares step 3 with the original. It accounts for e
 
 ### The reports
 
-Every report starts with a **Verdict**, then has its main table, and ends with **Checks performed**, **Not checked** and **Questions for the owner of the code**. Each report has a notes file beside it (`<report>.notes.md`) where Bob writes its decisions. The script writes the report from those notes, so a decision is changed in the notes and the command is run again, never in the report.
+Every report starts with a **Verdict**, then has its main table, and ends with **Checks performed**, **Not checked** and **Questions for the owner of the code**. Each report has a notes file beside it (`<report>.notes.md`) where Bob writes its decisions. The skill writes the report from those notes, so a decision is changed in the notes and the command is run again, never in the report.
 
 | Prompt | Report | What it tells the reader | Main parts |
 |---|---|---|---|
@@ -266,10 +266,10 @@ Every report starts with a **Verdict**, then has its main table, and ends with *
 | Run | Result |
 |---|---|
 | First run, full scope | Register and fix usable; the split into modules passed its gate and was wrong. The split, the log rewrite and the lookup files were taken out of the prompts |
-| Clean runs 1–4 | Each closed a gap: the path change limited to the prefix, the review written by the script, comments that explain live code kept, commands given the file the prompt names |
+| Clean runs 1–4 | Each closed a gap: the path change limited to the prefix, the review written by the skill, comments that explain live code kept, commands given the file the prompt names |
 | **Clean run 5, untouched** | **All ten gates passed with no intervention**: nothing typed but the five prompts, 44 minutes, about 53 Bob coins. Every step checked by hand was right; the final reviews found no unintended change and raised the operator's open decisions as questions |
 
-**Lessons:** where a script makes the change, the result is the same and right every time; where Bob writes new code itself, it varies. A gate proves the work is complete and accounted for, not that it is right, so each step's report is read before the next prompt.
+**Lessons:** where the skill makes the change, the result is the same and right every time; where Bob writes new code itself, it varies. A gate proves the work is complete and accounted for, not that it is right, so each step's report is read before the next prompt.
 
 ## Running It
 

@@ -16,7 +16,7 @@ Do not fix anything.
 |---|---|
 | **Why this step** | Check the change independently: every line that differs between the copy and the page, and nothing else |
 | **Reads** | The step-1 copy, the original page and the add report |
-| **The scripts** | Compare the two versions line by line, keeping strings in the alignment so near-identical rows are not mismatched, and list every difference with the strings and calls it adds |
+| **The skill** | Compare the two versions line by line, keeping strings in the alignment so near-identical rows are not mismatched, and list every difference with the strings and calls it adds |
 | **Bob decides** | For each difference: intended or not, with the reason; what only the owner can confirm (for example, whether the page's scripts pick up the new checkbox) |
 | **The gate refuses** | Any difference left unjudged |
 | **Writes** | A review of the change |
@@ -26,7 +26,7 @@ Do not fix anything.
 
 The review works in two passes:
 
-1. **The comparison (a script)** lists every line that differs between the copy and the original page, with the strings and calls each difference adds or removes. Nothing that changed can be left out of the list, not even a lost line or a changed line ending.
+1. **The comparison (done by the skill)** lists every line that differs between the copy and the original page, with the strings and calls each difference adds or removes. Nothing that changed can be left out of the list, not even a lost line or a changed line ending.
 2. **Bob** judges each difference: intended (part of the request) or unintended, with the reason. It also reads the changed lines and the lines that use the same names, such as the select lists, for problems a comparison cannot show, such as a tile that still opens the model's filter.
 
 The gate does not pass while any difference is left unjudged.

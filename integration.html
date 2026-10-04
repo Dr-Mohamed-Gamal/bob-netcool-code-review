@@ -86,20 +86,20 @@ footer { border-top: 1px solid var(--line); margin-top: 56px; padding-top: 16px;
     <li>event texts that name a variable the trap does not have, or the wrong one of its variables;</li>
     <li>servers that signal a recovery with the same trap and a value of one variable, rather than with a clearing trap.</li>
   </ul>
-  <p>None of these is visible in a rules file that loads without errors. So the rules are written by scripts, and Bob decides only what needs reading and judgement.</p>
+  <p>None of these is visible in a rules file that loads without errors. So the rules are written by the skill, and Bob decides only what needs reading and judgement.</p>
 </section>
 
 <section>
   <h2>How it works</h2>
   <p>A second skill for Bob, <code>trap-rules</code>, generic like the first: any trap list (a spreadsheet or a CSV with a name and an OID column), any SMIv1 or SMIv2 MIBs, and the folder tree of the standards document in the workspace. It has three tasks, each a command that ends with a gate.</p>
   <div class="cards">
-    <div class="card"><h3>1 · Catalogue</h3><p>The script reads every sheet and every MIB, matches each row to a MIB trap by OID and by name, and writes one block per open decision, each with its facts and a proposal. Bob decides; the script writes the catalogue.</p></div>
-    <div class="card"><h3>2 · Generate</h3><p>From the catalogue, the script proposes every trap's AlertKey and Summary and flags the texts that disagree with the MIB. Bob decides; the script writes the rules folder and its lookups, then checks them.</p></div>
+    <div class="card"><h3>1 · Catalogue</h3><p>The skill reads every sheet and every MIB, matches each row to a MIB trap by OID and by name, and writes one block per open decision, each with its facts and a proposal. Bob decides; the skill writes the catalogue.</p></div>
+    <div class="card"><h3>2 · Generate</h3><p>From the catalogue, the skill proposes every trap's AlertKey and Summary and flags the texts that disagree with the MIB. Bob decides; the skill writes the rules folder and its lookups, then checks them.</p></div>
     <div class="card"><h3>3 · Review</h3><p>A check of the rules against the catalogue that does not trust how they were made, and a small rules interpreter that sends one test trap of every kind through them and replays every problem with its clear.</p></div>
   </div>
   <h3>What Bob decides</h3>
   <div class="table-wrap"><table>
-    <thead><tr><th>Decision</th><th>What the script gives Bob</th></tr></thead>
+    <thead><tr><th>Decision</th><th>What the skill gives Bob</th></tr></thead>
     <tbody>
       <tr><td>A row that disagrees with the MIB</td><td>The row, the MIB trap at its OID, the MIB trap with its name, and which description matches</td></tr>
       <tr><td>A trap no MIB defines</td><td>Keep it from the sheet, or drop it; the report asks the owner for the MIB</td></tr>
@@ -109,7 +109,7 @@ footer { border-top: 1px solid var(--line); margin-top: 56px; padding-top: 16px;
       <tr><td>Key and summary</td><td>A proposal for every trap, from the sheet's text or the MIB; the texts that name a variable the trap does not have</td></tr>
     </tbody>
   </table></div>
-  <h3>What the scripts write</h3>
+  <h3>What the skill writes</h3>
 <pre>rules/&lt;name&gt;/
 ├── &lt;name&gt;.master.rules                    entry point: dispatch by trap, then the fields
 ├── config/&lt;name&gt;.master.include.rules     every table declaration
@@ -147,14 +147,14 @@ Do not fix anything.</pre>
   <h2>Questions people ask</h2>
   <div class="why"><h3>What if the trap list and the MIBs do not agree?</h3>
 <p>The catalogue is built in two passes:</p>
-<ol><li><strong>The scripts</strong> read every sheet and every MIB and match each row of the list to a MIB trap, by OID and by name. Every disagreement they find becomes a <strong>decision block</strong> in the notes file, with the facts and a proposal. They find the same things every time.</li><li><strong>Bob</strong> decides each block. The gate does not pass while a block is undecided or a trap has no severity.</li></ol>
+<ol><li><strong>The skill</strong> reads every sheet and every MIB and matches each row of the list to a MIB trap, by OID and by name. Every disagreement it finds becomes a <strong>decision block</strong> in the notes file, with the facts and a proposal. It finds the same things every time.</li><li><strong>Bob</strong> decides each block. The gate does not pass while a block is undecided or a trap has no severity.</li></ol>
 <p>What happens in each case:</p>
 <div class="table-wrap"><table><thead><tr><th>Case</th><th>What happens</th></tr></thead><tbody><tr><td>A trap is in the list but in no MIB that was sent</td><td>It is kept, with the OID and the severity from the list. Its variables cannot be named, and the report asks the operator for the MIB</td></tr><tr><td>An OID one digit away from a MIB OID</td><td>The MIB's OID is proposed, and the report lists the correction</td></tr><tr><td>A row whose name and OID point to two different traps</td><td>The trap is chosen by its description, and the report asks the operator to confirm</td></tr><tr><td>A trap listed twice with two severities</td><td>One severity is proposed, and the report asks the operator to confirm</td></tr><tr><td>A problem with no matching clear</td><td>It stays a problem that is cleared by hand, and the report asks whether it should expire instead</td></tr><tr><td>A trap a MIB defines but the list does not ask for</td><td>It is not catalogued: the list sets the scope</td></tr></tbody></table></div>
 <p><strong>The limits.</strong> The catalogue checks the list against the MIBs, not against the device. If the device sends a trap that neither the list nor a MIB names, the rules still give it an event, with an event id that marks it as unknown, so it is seen rather than lost. If the list and the MIB are both wrong in the same way, nothing here can tell.</p>
   </div>
-  <div class="why"><h3>What if the scripts cannot propose a value?</h3>
+  <div class="why"><h3>What if the skill cannot propose a value?</h3>
 <p>The generation also works in two passes:</p>
-<ol><li><strong>The scripts</strong> propose, from the catalogue, the file layout, the expiry of events, and each trap's group, key and summary. They flag what they cannot settle: an event text in the trap list that names a variable the trap does not carry, or a trap with no text to build a summary from. Those blocks are left open, with the facts.</li><li><strong>Bob</strong> writes the open blocks and accepts or changes the proposals. No rule is written until every block is decided, and the gate refuses a summary that names a variable the trap does not have.</li></ol>
+<ol><li><strong>The skill</strong> proposes, from the catalogue, the file layout, the expiry of events, and each trap's group, key and summary. It flags what it cannot settle: an event text in the trap list that names a variable the trap does not carry, or a trap with no text to build a summary from. Those blocks are left open, with the facts.</li><li><strong>Bob</strong> writes the open blocks and accepts or changes the proposals. No rule is written until every block is decided, and the gate refuses a summary that names a variable the trap does not have.</li></ol>
 <p>Choices that belong to the operator are not made by Bob: the domain folder the rules go into, the event field that carries the service-impact flag, and which severity wins when two sources disagree. They are proposed and listed as questions in the report.</p>
 <p><strong>The limits.</strong> The rules are generated as text and checked by the review and its simulator (prompt 3). They have not been loaded by a real probe.</p>
   </div>
@@ -174,7 +174,7 @@ Do not fix anything.</pre>
       <tr><td>The inputs</td><td>The operator's trap list (seven sheets: the service-impacting alarms, all application traps, the management server's alarm format, server resource thresholds, switch, and two server hardware vendors) and 63 MIB files: 2,116 trap definitions read, every one placed. The catalogue holds 174 traps and 165 alarm numbers.</td></tr>
       <tr><td>Before Bob: a stand-in</td><td>An AI agent standing in for Bob, reading only the workspace rule and the skill, ran the three prompts and reported what was unclear. Its most serious point: two different clear groups could be given the same AlertGroup, so a clear of one would close the other's problem. The gate and the simulator now refuse it; nine smaller points were fixed the same way.</td></tr>
       <tr><td>The review</td><td>Eleven defects planted in a copy of the rules (a changed severity, a missing case, an absolute path, a problem and clear with different keys, a variable the trap does not have, commented-out code, a log line without the node, an unset variable, a wrong clear value, an open brace, a missing alarm number) were all found.</td></tr>
-      <tr><td>First prompt in Bob</td><td>The gate passed in a minute, but Bob had accepted every proposal, so the judgement calls were missing: threshold objects left without a trap, a power-off with no clear, a cold start that would never clear. The lesson: <strong>a gate is only as good as the proposals Bob accepts</strong>. The scripts now propose those judgements themselves, and leave a block open only where Bob must write something.</td></tr>
+      <tr><td>First prompt in Bob</td><td>The gate passed in a minute, but Bob had accepted every proposal, so the judgement calls were missing: threshold objects left without a trap, a power-off with no clear, a cold start that would never clear. The lesson: <strong>a gate is only as good as the proposals Bob accepts</strong>. The skill now proposes those judgements itself, and leaves a block open only where Bob must write something.</td></tr>
       <tr><td>Clean run</td><td><span class="ok">All three gates passed at the first attempt</span>, in one new chat with nothing typed but the three prompts: about three and a half minutes and 2.18 Bob coins. The catalogue was identical to the one the proposals give; Bob wrote the two summaries it had to write; 13 rules files with 174 cases; the review found nothing, with 172 test traps, 165 test alarms and 54 problem/clear pairs replayed in the simulator.</td></tr>
       <tr><td>The skill</td><td>48 automated tests on small synthetic MIBs and trap lists.</td></tr>
     </tbody>

@@ -16,7 +16,7 @@ Do not decide what is the client's to decide.
 |---|---|
 | **Why this step** | Correct what the review found, if anything, in a new copy |
 | **Reads** | The review's findings and the step-1 copy |
-| **The scripts** | Apply the corrections from Bob's notes in a copy and compare it with step 1. With no finding, the fix passes at once and the copy is unchanged |
+| **The skill** | Apply the corrections from Bob's notes in a copy and compare it with step 1. With no finding, the fix passes at once and the copy is unchanged |
 | **Bob decides** | The correction of each finding, or a question for the owner |
 | **The gate refuses** | A finding with neither a correction nor a question |
 | **Writes** | The fixed copy (step 2) and a change log |

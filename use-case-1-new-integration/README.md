@@ -18,7 +18,7 @@ The operator sent the **integration package exactly as an integration team recei
 |---|---|---|---|
 | **The trap list** | An Excel workbook prepared for the integration, nine sheets, of which seven are used | The operator's selection of traps, sheet by sheet (detailed below): names, OIDs, severities, components, the vendor's alarm numbers, descriptions, and the event text the vendor recommends | It holds the **business decisions**: which traps matter, how severe each is, and what the event should say. But it is typed by hand, so it is checked against the MIBs rather than trusted |
 | **The vendors' MIBs** | 63 MIB files in three vendor kits: the platform's application MIBs (with the standard MIBs they import), a server management controller's alert MIBs, and a server vendor's full MIB kit | 2,116 trap definitions, all read, with their OIDs, the variables each trap carries in order, the meaning of coded values, table indexes, and summary and severity hints | A MIB is the **device's own definition** of its traps. The rules need it to name each trap's variables and build its key; the catalogue uses it to check every row of the hand-typed list |
-| **The business requirement** | The operator's requirement document for the platform | The platform's node types and sites, and the scope: integrate the platform's alarms and the hardware alarms of its switches and servers | It sets the **scope**: it explains why the switch and server sheets are part of the work. It is read by Bob and the engineer, not by the scripts; it names staff, so it stays in the private workspace |
+| **The business requirement** | The operator's requirement document for the platform | The platform's node types and sites, and the scope: integrate the platform's alarms and the hardware alarms of its switches and servers | It sets the **scope**: it explains why the switch and server sheets are part of the work. It is read by Bob and the engineer, not by the skill; it names staff, so it stays in the private workspace |
 | **The rules code standards** | The operator's standard for rules files, reused from use case 5 and copied into this workspace | The folder tree for a probe's rules, every path through `$NC_RULES_HOME`, all tables declared in one place, data in lookups, one log format, no commented-out code | It defines the **target layout**: the rules are generated directly in the tree the operator wants, instead of being refactored into it later |
 
 ### The files, one by one
@@ -29,7 +29,7 @@ The operator sent one zip: a business requirement, a trap-list workbook, and a f
 
 | # | File | Size | What it is | Role in the use case |
 |---|---|---|---|---|
-| 1 | The business requirement (`.docx`) | ~0.5 MB, 7 pages | The operator's requirement for the platform: its node types and sites, and the integration scope — the platform's alarms and the hardware alarms of its switches and servers | Sets the scope that explains why the switch and server sheets belong to the work; read by Bob and the engineer, not by the scripts; kept in the private workspace because it names staff |
+| 1 | The business requirement (`.docx`) | ~0.5 MB, 7 pages | The operator's requirement for the platform: its node types and sites, and the integration scope — the platform's alarms and the hardware alarms of its switches and servers | Sets the scope that explains why the switch and server sheets belong to the work; read by Bob and the engineer, not by the skill; kept in the private workspace because it names staff |
 | 2 | The trap-list workbook (`.xlsx`) | 9 sheets, 7 used | The integration team's list of traps in scope, with severities and expected event texts (each sheet is described in the next table) | The input of prompt 1: every row is matched to the MIBs, and every disagreement becomes a decision |
 | 3 | The rules code standards (`.txt`) | ~55 lines | The operator's standard for rules files, sent with [use case 5](../use-case-5-code-review/) and copied into this workspace | The input of prompt 2: the layout the rules are generated in |
 
@@ -93,15 +93,15 @@ The switch vendor's chassis MIB and the resource MIB of the servers' SNMP agent 
 
 ## How It Works
 
-The **trap-rules** skill is generic: any trap list (a spreadsheet or CSV with a name and an OID column), any SMIv1 or SMIv2 MIBs, and the folder tree of the standards document in the workspace. It has three tasks, each a command that ends with a gate. The scripts read the inputs and propose every decision; Bob decides in a notes file, in one edit; the scripts write the catalogue, the rules and the reports.
+The **trap-rules** skill is generic: any trap list (a spreadsheet or CSV with a name and an OID column), any SMIv1 or SMIv2 MIBs, and the folder tree of the standards document in the workspace. It has three tasks, each a command that ends with a gate. The skill reads the inputs and proposes every decision; Bob decides in a notes file, in one edit; the skill writes the catalogue, the rules and the reports.
 
-**Bob accepts proposals readily**, so the proposals carry the judgement: the scripts pair a problem with its clear by name and by opposite states (Removal and Insertion, Offline and Online, Off and On), find the clear a trap carries in its own variables, propose the standard event triggers for threshold objects, and leave a block open only where Bob must write something itself.
+**Bob accepts proposals readily**, so the proposals carry the judgement: the skill pairs a problem with its clear by name and by opposite states (Removal and Insertion, Offline and Online, Off and On), finds the clear a trap carries in its own variables, proposes the standard event triggers for threshold objects, and leaves a block open only where Bob must write something itself.
 
 ```
 uc1-new-integration/
 ├── .bob/
 │   ├── rules/trap-integration.md
-│   └── skills/trap-rules/              # SKILL.md + scripts/
+│   └── skills/trap-rules/              # the skill: SKILL.md and its code
 ├── inputs/
 │   ├── <trap list>.xlsx                # credential sheets removed
 │   ├── <business requirement>.docx
@@ -131,7 +131,7 @@ Do not write any rules.
 |---|---|
 | **Why this step** | Turn a hand-typed list and a pile of MIBs into one checked list of traps before any rule is written, so every disagreement is settled once, in writing |
 | **Reads** | Every sheet of the workbook and every MIB file |
-| **The scripts** | Find the trap tables in each sheet; read every MIB (both SMIv1 and SMIv2 traps) and resolve OIDs, variables, value maps and table indexes; match each row by OID and by name; detect OID typos (one digit from a MIB OID), names that differ from the MIB, rows whose name and OID point to two traps, traps no MIB defines, rows that are variables rather than traps, alarm numbers, and remarks; map severity words; find traps listed with two severities; pair problems and clears; write one block per decision, each with its facts and a proposal |
+| **The skill** | Find the trap tables in each sheet; read every MIB (both SMIv1 and SMIv2 traps) and resolve OIDs, variables, value maps and table indexes; match each row by OID and by name; detect OID typos (one digit from a MIB OID), names that differ from the MIB, rows whose name and OID point to two traps, traps no MIB defines, rows that are variables rather than traps, alarm numbers, and remarks; map severity words; find traps listed with two severities; pair problems and clears; write one block per decision, each with its facts and a proposal |
 | **Bob decides** | The role of each sheet, each row that disagrees with the MIBs, the severity words, the conflicts, the trap that carries the alarm numbers, the clear groups, and the problems with no clear |
 | **The gate refuses** | Any block without a valid decision; any trap left without a severity |
 | **Writes** | The catalogue (every trap with its SNMPv1 form, severity, type, clear group and flags; the alarm-number table; the decisions; where the list and the MIBs differ; the questions for the operator) and a machine-readable copy for the next step |
@@ -141,7 +141,7 @@ Do not write any rules.
 
 The catalogue is built in two passes:
 
-1. **The scripts** read every sheet and every MIB and match each row of the list to a MIB trap, by OID and by name. Every disagreement they find becomes a **decision block** in the notes file, with the facts and a proposal. They find the same things every time.
+1. **The skill** reads every sheet and every MIB and matches each row of the list to a MIB trap, by OID and by name. Every disagreement it finds becomes a **decision block** in the notes file, with the facts and a proposal. It finds the same things every time.
 2. **Bob** decides each block. The gate does not pass while a block is undecided or a trap has no severity.
 
 What happens in each case:
@@ -169,17 +169,17 @@ Do not decide what is the client's to decide.
 |---|---|
 | **Why this step** | Write the rules from the catalogue only, in the operator's layout, with every value that is data in lookups |
 | **Reads** | The catalogue and the standards document, whose folder tree the layout follows |
-| **The scripts** | Propose the layout, one rules file per vendor, the expiry of events, and every trap's group, key and summary (from the trap list's text, the MIB's summary or the description); flag texts that name a variable the trap does not have or the wrong one; after the decisions, write the entry point, the table declarations, one case per trap, the field normalization and the lookups; then check them and send a test trap of every kind through the simulator |
-| **Bob decides** | The folder path, the file names, the expiry, any group, key or summary to change, and the summaries the scripts could not propose |
+| **The skill** | Propose the layout, one rules file per vendor, the expiry of events, and every trap's group, key and summary (from the trap list's text, the MIB's summary or the description); flag texts that name a variable the trap does not have or the wrong one; after the decisions, write the entry point, the table declarations, one case per trap, the field normalization and the lookups; then check them and send a test trap of every kind through the simulator |
+| **Bob decides** | The folder path, the file names, the expiry, any group, key or summary to change, and the summaries the skill could not propose |
 | **The gate refuses** | An open block; a template that names a variable the trap does not have; two clear groups sharing one AlertGroup (a clear of one would close the other's problem); any finding of the check or the simulator |
 | **Writes** | The rules folder and a report with the files, how to install them, every trap's key and summary, and the questions for the operator |
 | **Why these words** | "Following" the standards document sets the target tree; "Do not decide what is the client's to decide" turns the domain folder, the field for the service-impact flag and the severity conflicts into questions |
 
-#### What if the scripts cannot propose a value?
+#### What if the skill cannot propose a value?
 
 The generation also works in two passes:
 
-1. **The scripts** propose, from the catalogue, the file layout, the expiry of events, and each trap's group, key and summary. They flag what they cannot settle: an event text in the trap list that names a variable the trap does not carry, or a trap with no text to build a summary from. Those blocks are left open, with the facts.
+1. **The skill** proposes, from the catalogue, the file layout, the expiry of events, and each trap's group, key and summary. It flags what it cannot settle: an event text in the trap list that names a variable the trap does not carry, or a trap with no text to build a summary from. Those blocks are left open, with the facts.
 2. **Bob** writes the open blocks and accepts or changes the proposals. No rule is written until every block is decided, and the gate refuses a summary that names a variable the trap does not have.
 
 Choices that belong to the operator are not made by Bob: the domain folder the rules go into, the event field that carries the service-impact flag, and which severity wins when two sources disagree. They are proposed and listed as questions in the report.
@@ -198,7 +198,7 @@ Do not fix anything.
 |---|---|
 | **Why this step** | Check the rules independently of how they were made, so the same review also works on rules edited by hand later |
 | **Reads** | The rules folder and the catalogue |
-| **The scripts** | Check the rules as text (syntax, paths through `$NC_RULES_HOME`, the log format, commented-out code, one case per trap, event ids, severities and types, variables, the key of each problem and its clear, the alarm numbers), then run the **simulator**: a small interpreter of the rules language sends one test trap per trap, one per alarm number, each problem followed by its clear, each clear-by-value, and an unknown trap, and compares the events with the catalogue |
+| **The skill** | Check the rules as text (syntax, paths through `$NC_RULES_HOME`, the log format, commented-out code, one case per trap, event ids, severities and types, variables, the key of each problem and its clear, the alarm numbers), then run the **simulator**: a small interpreter of the rules language sends one test trap per trap, one per alarm number, each problem followed by its clear, each clear-by-value, and an unknown trap, and compares the events with the catalogue |
 | **Bob decides** | For each finding: fix, a question for the owner, or not a defect with the reason the files show |
 | **The gate refuses** | A finding without a decision |
 | **Writes** | The review |
@@ -276,7 +276,7 @@ uc1-new-integration/
 | 2 · Generate | `rules-generated.md` | The files written with their line counts, **how to install** them (where to copy the folder and the two include lines to add to the probe's main rules), the traps covered, the decisions, the self-check of the rules, and the questions for the operator |
 | 3 · Review | `rules-review.md` | Whether the rules can go to a test probe. It lists every finding with its file and line. A simulator replays a test trap of every kind and every problem/clear pair through the rules and compares the events with the catalogue. It ends with what was not checked: loading the rules in a real probe and its syntax check |
 
-Each report has a notes file beside it (`<report>.notes.md`) where Bob writes its decisions. The script writes the report and the rules from those notes. A change is made in the notes and the command is run again, never in the rules by hand.
+Each report has a notes file beside it (`<report>.notes.md`) where Bob writes its decisions. The skill writes the report and the rules from those notes. A change is made in the notes and the command is run again, never in the rules by hand.
 
 Prompts 4 and 5 are needed only when the review finds something. The fix (prompt 4) changes a decision in the notes, then generates `rules/<device>/` and `rules-generated.md` again. The second review (prompt 5) writes `rules-review-2.md`.
 
@@ -287,7 +287,7 @@ Prompts 4 and 5 are needed only when the review finds something. The fix (prompt
 | The inputs | 2,116 trap definitions read from 63 MIB files, every one placed; the catalogue holds 174 traps and 165 alarm numbers |
 | A stand-in before Bob | An AI agent standing in for Bob, reading only the workspace rule and the skill, ran the three prompts and reported what was unclear. Its most serious point: two clear groups could get the same AlertGroup, so a clear of one would close the other's problem. The gate and the simulator now refuse it |
 | The review's own test | Eleven defects planted in a copy of the rules were all found |
-| First prompt in Bob | The gate passed in a minute, but Bob had accepted every proposal, so some judgement calls were missing. **A gate is only as good as the proposals Bob accepts**: the scripts now propose those judgements themselves |
+| First prompt in Bob | The gate passed in a minute, but Bob had accepted every proposal, so some judgement calls were missing. **A gate is only as good as the proposals Bob accepts**: the skill now proposes those judgements itself |
 | **Clean run** | **All three gates passed at the first attempt**, in one new chat with nothing typed but the three prompts: about three and a half minutes and about 2 Bob coins. 13 rules files with 174 cases; the review found nothing, with 172 test traps, 165 test alarms and 54 problem/clear pairs replayed |
 
 ### Questions the run leaves for the operator

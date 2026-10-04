@@ -50,7 +50,7 @@ The page's own scripts (those that fetch the counts and build the device filter)
 
 ## How It Works
 
-The skill's change task has a **copy** operation. Bob names the model device, the block of lines that is its row, and the other spellings of its name; the script does the rest. A made-up example of what Bob writes in its notes:
+The skill's change task has a **copy** operation. Bob names the model device, the block of lines that is its row, and the other spellings of its name; the skill does the rest. A made-up example of what Bob writes in its notes:
 
 ```text
 ### copy sw1 as sw2
@@ -61,7 +61,7 @@ replace:
 why: the owner asks for the device SW2, with the same tiles, filters and selection as SW1.
 ```
 
-The script then copies the model's block right after itself with only those replacements, finds every other line of the page that names the model (the select lists) and copies each one right after itself the same way, and **refuses** the copy while:
+The skill then copies the model's block right after itself with only those replacements, finds every other line of the page that names the model (the select lists) and copies each one right after itself the same way, and **refuses** the copy while:
 
 - it still holds any name of the model, in any letter case, so no tile can keep an old filter;
 - a new name is already used in the page, so ids and filter names stay unique;
@@ -74,7 +74,7 @@ In a web page the scanner reads only the scripts and the event attributes (`oncl
 uc3-dashboard/
 ├── .bob/
 │   ├── rules/review-and-change-code.md
-│   └── skills/code-review/          # SKILL.md + scripts/
+│   └── skills/code-review/          # the skill: SKILL.md and its code
 ├── inputs/                          # <page>.html
 ├── refactored/                      # step-1-device-added/ → step-2-fixed/
 └── reports/                         # add-device, code-review, change-log, code-review-2, diagnosis
@@ -96,7 +96,7 @@ Do not change inputs.
 |---|---|
 | **Why this step** | Make the change the operator asked for: a new device with exactly the same tiles, filters and selection as an existing one, under names of its own |
 | **Reads** | The page; the plan file shows the model device's row lines and every other line that names the model |
-| **The scripts** | Copy the model's block right after itself with only the replacements Bob lists, copy each other line that names the model (the select lists) right after itself the same way, and account for every string and call the copy repeats |
+| **The skill** | Copy the model's block right after itself with only the replacements Bob lists, copy each other line that names the model (the select lists) right after itself the same way, and account for every string and call the copy repeats |
 | **Bob decides** | The model, the new names, the lines of the model's block, the replacements, and any style value that depends on the label (the value used by rows whose label is as long as the new one) |
 | **The gate refuses** | A copy that still holds any name of the model; a new name the page already uses; a block that is not whole; a second block for the same model; a style value that does not fit the new label |
 | **Writes** | The changed copy (step 1) and a report of the copy |
@@ -124,7 +124,7 @@ Do not fix anything.
 |---|---|
 | **Why this step** | Check the change independently: every line that differs between the copy and the page, and nothing else |
 | **Reads** | The step-1 copy, the original page and the add report |
-| **The scripts** | Compare the two versions line by line, keeping strings in the alignment so near-identical rows are not mismatched, and list every difference with the strings and calls it adds |
+| **The skill** | Compare the two versions line by line, keeping strings in the alignment so near-identical rows are not mismatched, and list every difference with the strings and calls it adds |
 | **Bob decides** | For each difference: intended or not, with the reason; what only the owner can confirm (for example, whether the page's scripts pick up the new checkbox) |
 | **The gate refuses** | Any difference left unjudged |
 | **Writes** | A review of the change |
@@ -134,7 +134,7 @@ Do not fix anything.
 
 The review works in two passes:
 
-1. **The comparison (a script)** lists every line that differs between the copy and the original page, with the strings and calls each difference adds or removes. Nothing that changed can be left out of the list, not even a lost line or a changed line ending.
+1. **The comparison (done by the skill)** lists every line that differs between the copy and the original page, with the strings and calls each difference adds or removes. Nothing that changed can be left out of the list, not even a lost line or a changed line ending.
 2. **Bob** judges each difference: intended (part of the request) or unintended, with the reason. It also reads the changed lines and the lines that use the same names, such as the select lists, for problems a comparison cannot show, such as a tile that still opens the model's filter.
 
 The gate does not pass while any difference is left unjudged.
@@ -153,7 +153,7 @@ Do not decide what is the client's to decide.
 |---|---|
 | **Why this step** | Correct what the review found, if anything, in a new copy |
 | **Reads** | The review's findings and the step-1 copy |
-| **The scripts** | Apply the corrections from Bob's notes in a copy and compare it with step 1. With no finding, the fix passes at once and the copy is unchanged |
+| **The skill** | Apply the corrections from Bob's notes in a copy and compare it with step 1. With no finding, the fix passes at once and the copy is unchanged |
 | **Bob decides** | The correction of each finding, or a question for the owner |
 | **The gate refuses** | A finding with neither a correction nor a question |
 | **Writes** | The fixed copy (step 2) and a change log |
@@ -171,7 +171,7 @@ Do not fix anything.
 |---|---|
 | **Why this step** | Close the loop: the fixed copy reviewed against the original page. Prompts 3 and 4 repeat until the review is clean |
 | **Reads** | The step-2 copy and the original page |
-| **The scripts** | The same comparison as prompt 2 |
+| **The skill** | The same comparison as prompt 2 |
 | **Bob decides** | The same judgements as prompt 2 |
 | **The gate refuses** | Any difference left unjudged |
 | **Writes** | A second review |
@@ -189,7 +189,7 @@ Do not fix anything.
 |---|---|
 | **Why this step** | Show how a reported fault is traced to its cause without touching the page |
 | **Reads** | The original page and the symptom in the operator's words |
-| **The scripts** | List every line that names what the symptom involves (the two devices, their filters), with the scan hits on those lines |
+| **The skill** | List every line that names what the symptom involves (the two devices, their filters), with the scan hits on those lines |
 | **Bob decides** | Each possible cause with its line, a quote that is on that line, how the line produces the symptom, and whether it is shown, ruled out, or open with the test that decides it |
 | **The gate refuses** | A quote that is not on its line; a diagnosis with no cause shown and an open cause that names no test |
 | **Writes** | A diagnosis |
@@ -199,7 +199,7 @@ Do not fix anything.
 
 The diagnosis works in two passes:
 
-1. **The script** lists every line that names what the symptom involves (the two devices, their tiles, their filters), with the scan's hits on those lines.
+1. **The skill** lists every line that names what the symptom involves (the two devices, their tiles, their filters), with the scan's hits on those lines.
 2. **Bob** reads those lines and compares the faulty tiles with tiles that work. Each possible cause gets its line, a quote from that line, how it produces the symptom, and a status: **shown** (the line itself proves it), **ruled out**, or **open**, with the test that would decide it. The gate checks that every quote is on its line.
 
 - **If the cause is not in the page**, because it is in a script the page loads, in the Impact policy or in the events, the diagnosis says that no cause is shown in the page and names the test that would decide it.
@@ -248,7 +248,7 @@ The diagnosis (prompt 5) changes no file. It reads the original page and names t
 
 ### The reports
 
-Every report starts with a **Verdict** and ends with **Checks performed**, **Not checked** and **Questions for the owner of the code**. Each has a notes file beside it (`<report>.notes.md`) where Bob writes its decisions. The script writes the report from those notes.
+Every report starts with a **Verdict** and ends with **Checks performed**, **Not checked** and **Questions for the owner of the code**. Each has a notes file beside it (`<report>.notes.md`) where Bob writes its decisions. The skill writes the report from those notes.
 
 | Prompt | Report | What it tells the reader | Main parts |
 |---|---|---|---|

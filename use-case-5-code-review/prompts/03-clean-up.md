@@ -18,7 +18,7 @@ Do not change the ticket content or the events.
 |---|---|
 | **Why this step** | Remove the code switched off over the years, so engineers read only what runs. Both documents ask for it, and it is the change most often done carelessly by hand |
 | **Reads** | The step-1 copy and the document's item on commented-out code |
-| **The scripts** | List every commented-out line and block, telling them apart from comments that explain live code; remove what Bob confirms, in a copy; refuse to remove a comment that stands right above a live line that stays; compare the copy with step 1 |
+| **The skill** | List every commented-out line and block, telling them apart from comments that explain live code; remove what Bob confirms, in a copy; refuse to remove a comment that stands right above a live line that stays; compare the copy with step 1 |
 | **Bob decides** | Which commented-out code goes (normally all of it), and which comment is an explanation to keep |
 | **The gate refuses** | A removal that changes a live line or leaves half a block; an item of the document left unaccounted for |
 | **Writes** | The cleaned copy (step 2) and a clean-up report per input |

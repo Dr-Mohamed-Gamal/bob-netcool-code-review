@@ -16,7 +16,7 @@ Do not fix anything.
 |---|---|
 | **Why this step** | Show how a reported fault is traced to its cause without touching the page |
 | **Reads** | The original page and the symptom in the operator's words |
-| **The scripts** | List every line that names what the symptom involves (the two devices, their filters), with the scan hits on those lines |
+| **The skill** | List every line that names what the symptom involves (the two devices, their filters), with the scan hits on those lines |
 | **Bob decides** | Each possible cause with its line, a quote that is on that line, how the line produces the symptom, and whether it is shown, ruled out, or open with the test that decides it |
 | **The gate refuses** | A quote that is not on its line; a diagnosis with no cause shown and an open cause that names no test |
 | **Writes** | A diagnosis |
@@ -26,7 +26,7 @@ Do not fix anything.
 
 The diagnosis works in two passes:
 
-1. **The script** lists every line that names what the symptom involves (the two devices, their tiles, their filters), with the scan's hits on those lines.
+1. **The skill** lists every line that names what the symptom involves (the two devices, their tiles, their filters), with the scan's hits on those lines.
 2. **Bob** reads those lines and compares the faulty tiles with tiles that work. Each possible cause gets its line, a quote from that line, how it produces the symptom, and a status: **shown** (the line itself proves it), **ruled out**, or **open**, with the test that would decide it. The gate checks that every quote is on its line.
 
 - **If the cause is not in the page**, because it is in a script the page loads, in the Impact policy or in the events, the diagnosis says that no cause is shown in the page and names the test that would decide it.

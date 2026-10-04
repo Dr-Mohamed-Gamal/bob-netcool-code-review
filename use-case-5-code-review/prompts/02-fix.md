@@ -16,7 +16,7 @@ Do not decide what is the client's to decide.
 |---|---|
 | **Why this step** | Correct what is plainly wrong, in a copy, so the original stays as the baseline and every change is written down |
 | **Reads** | The original file and its defect register |
-| **The scripts** | Make every correction that has only one possible form, apply Bob's corrections, and compare the copy with the original. A correction tagged with the wrong finding is refused; switching commented-out code back on becomes a question, not a fix |
+| **The skill** | Make every correction that has only one possible form, apply Bob's corrections, and compare the copy with the original. A correction tagged with the wrong finding is refused; switching commented-out code back on becomes a question, not a fix |
 | **Bob decides** | The correction of each finding the code itself settles, and a specific question for each one only the operator can settle (a filter switched off on purpose, an address written into the code) |
 | **The gate refuses** | A High finding with neither a correction nor a specific question; a new call, operator or non-ASCII character the original did not have, unless its reason is written; notes left untouched |
 | **Writes** | The corrected copy (step 1) and a change log per input |
