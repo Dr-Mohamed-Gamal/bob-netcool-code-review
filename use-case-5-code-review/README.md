@@ -200,6 +200,49 @@ The operator's documents also ask for a split into a modular structure, merged d
 | 4 · Standardize | The step-2 copy and the document's item on names or paths | A standardized copy (step 3) and a standards report |
 | 5 · Code review | The step-3 copy, the original, every earlier report | A review of the whole change |
 
+## The Output of Each Prompt
+
+After the five prompts, each input folder holds the original, three copies of the code and five reports. `probe-rules/` has the same layout as `impact-policy/`.
+
+```
+impact-policy/
+├── inputs/                     # the original: never changed
+├── refactored/
+│   ├── step-1-fixed/           # prompt 2: the defects corrected
+│   ├── step-2-cleaned/         # prompt 3: step 1 without its commented-out code
+│   └── step-3-standardized/    # prompt 4: step 2 with standard names or paths, the deliverable
+└── reports/
+    ├── defect-register.md      # prompt 1
+    ├── change-log.md           # prompt 2
+    ├── clean-up.md             # prompt 3
+    ├── standards.md            # prompt 4
+    └── code-review.md          # prompt 5
+```
+
+### Fixed, cleaned, standardized
+
+Each step is a whole copy of the file, made from the step before it, so the steps build on each other. The original is never changed. Comparing two neighbouring steps shows one kind of change only, which is what makes each step easy to review. The examples below are made up.
+
+| Step | What it means | Example | Does the behaviour change? |
+|---|---|---|---|
+| **step-1-fixed** | The defects listed in the register are corrected. A defect whose fix is the operator's choice is not changed: it becomes a question in the change log | `if (Severity = 5)` (an assignment that is always true) becomes `if (Severity == 5)` (a comparison) | Yes, on purpose. Each correction is listed with its effect on the ticket or the event |
+| **step-2-cleaned** | The commented-out code is removed: old statements switched off with `//`, `/* */` or `#`. A comment that explains live code stays | `// TicketUrgency = 1;` is deleted, and `// severity 5 means critical` is kept | No. Only comments are removed |
+| **step-3-standardized** | The operator's standards are applied. In the policy, local variables are renamed to camelCase. In the rules, the absolute path prefix becomes `$NC_RULES_HOME` | `Ticket_Severity` becomes `ticketSeverity`, and `"/opt/IBM/tivoli/netcool/omnibus/etc/probes/rules/<folder>/x.lookup"` becomes `"$NC_RULES_HOME/<folder>/x.lookup"` | No. Names and paths change, but the logic, the folder names and the file names stay the same |
+
+The final review (prompt 5) compares step 3 with the original. It accounts for every difference, saying which step made it and whether it was intended.
+
+### The reports
+
+Every report starts with a **Verdict**, then has its main table, and ends with **Checks performed**, **Not checked** and **Questions for the owner of the code**. Each report has a notes file beside it (`<report>.notes.md`) where Bob writes its decisions. The script writes the report from those notes, so a decision is changed in the notes and the command is run again, never in the report.
+
+| Prompt | Report | What it tells the reader | Main parts |
+|---|---|---|---|
+| 1 | `defect-register.md` | What is wrong in the original, and what each defect does to a ticket or an event | Findings (line, quoted code, kind, severity, effect, fix or question); findings from reading; scan hits that are not defects, with the evidence; coverage of the code and of the document |
+| 2 | `change-log.md` | Every line corrected in step 1, and every finding left as it is | Changes made (line, before, after, effect); findings not corrected and why |
+| 3 | `clean-up.md` | Every commented-out line removed in step 2, and the comments kept | Changes made; coverage of the document's item on commented-out code |
+| 4 | `standards.md` | Every rename or path change made in step 3 | Renames applied (old name, new name, lines); rules applied (for example the path prefix); coverage of the document's item |
+| 5 | `code-review.md` | Whether step 3 can replace the original | The two versions in numbers; what the change consists of (lines rewritten, renamed, removed, added); the scan's defect counts before and after; every difference with its judgement (no change of behaviour, intended, or unintended); claims of the earlier reports checked |
+
 ## Results
 
 | Run | Result |

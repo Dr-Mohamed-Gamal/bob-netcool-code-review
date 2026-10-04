@@ -184,6 +184,47 @@ Do not fix anything.
 | 4 · Review the fix | The step-2 copy and the original page | A second review |
 | 5 · Debug | The original page and the symptom | A diagnosis: the cause on its line, or the test that decides it |
 
+## The Output of Each Prompt
+
+After the five prompts, the workspace holds the original page, two copies of it and five reports.
+
+```
+uc3-dashboard/
+├── inputs/<page>.html                     # the original: never changed
+├── refactored/
+│   ├── step-1-device-added/<page>.html    # prompt 1: the page with the new device
+│   └── step-2-fixed/<page>.html           # prompt 3: step 1 with the review's findings fixed, the deliverable
+└── reports/
+    ├── add-device.md                      # prompt 1
+    ├── code-review.md                     # prompt 2
+    ├── change-log.md                      # prompt 3
+    ├── code-review-2.md                   # prompt 4
+    └── diagnosis.md                       # prompt 5
+```
+
+### Device added, fixed
+
+Each step is a whole copy of the page, made from the step before it. The original is never changed. The examples below are made up.
+
+| Step | What it means | Example | Does anything else change? |
+|---|---|---|---|
+| **step-1-device-added** | The original page plus the new device. The device gets its own row: a checkbox with its label and three severity tiles (critical, major, minor), each opening the event list through its own filter. It also gets one line in each of the scripts that select or clear all devices. Each new line is a copy of the model device's line, with only the model's names replaced | The model's tile `id="sw1Critical"` with filter `F_SW1_Critical` and `DeviceType = 'SW1'` gives a new tile `id="sw2Critical"` with filter `F_SW2_Critical` and `DeviceType = 'SW2'` | No. Every other line stays byte for byte, including its line ending |
+| **step-2-fixed** | Step 1 with the findings of the review corrected. When the review finds nothing to fix, as in the clean runs, this copy is identical to step 1 | A tile that kept the model's filter name would be given the new device's own | No. Only the lines of the findings change |
+
+The diagnosis (prompt 5) changes no file. It reads the original page and names the line that causes the reported symptom.
+
+### The reports
+
+Every report starts with a **Verdict** and ends with **Checks performed**, **Not checked** and **Questions for the owner of the code**. Each has a notes file beside it (`<report>.notes.md`) where Bob writes its decisions. The script writes the report from those notes.
+
+| Prompt | Report | What it tells the reader | Main parts |
+|---|---|---|---|
+| 1 | `add-device.md` | Exactly which lines were added for the new device, and from which model lines | Changes made (each new line and the model line it copies); copies made (the model's lines, the replacements); every string the copy wrote; the style value chosen for the new label and why |
+| 2 | `code-review.md` | Whether the copy can replace the original page | The two versions in numbers; what the change consists of (lines added, rewritten, removed); every difference, judged intended or unintended; findings, each with its line quoted |
+| 3 | `change-log.md` | What was fixed in step 2, and what was left to the owner | Changes made (line, before, after); findings not corrected and why |
+| 4 | `code-review-2.md` | The same review for the fixed copy | Same parts as the first review |
+| 5 | `diagnosis.md` | Why the symptom happens, without changing the page | The symptom; the causes (line, quoted code, how it produces the symptom, status: shown or likely); every line that names what the symptom involves; the evidence; the fix proposed, not made |
+
 ## Results
 
 | Run | Result |

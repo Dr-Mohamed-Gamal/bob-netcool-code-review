@@ -197,6 +197,47 @@ A finding marked "fix" is corrected where the rules come from — the decision i
 | 2 · Generate | The catalogue and the standards document | The rules folder and the generation report |
 | 3 · Review | The rules folder and the catalogue | The review, with the simulator's results |
 
+## The Output of Each Prompt
+
+After the three prompts, the workspace holds three reports and one rules folder. The rules folder is the deliverable. The inputs are never changed.
+
+```
+uc1-new-integration/
+├── inputs/                                    # never changed
+├── reports/
+│   ├── trap-catalogue.md                      # prompt 1: every trap, as people read it
+│   ├── trap-catalogue.json                    # prompt 1: the same catalogue, read by the generator
+│   ├── rules-generated.md                     # prompt 2
+│   └── rules-review.md                        # prompt 3
+└── rules/<device>/                            # prompt 2: the probe rules, in the operator's folder tree
+    ├── <device>.master.rules                  #   entry point: finds the trap, then sets the event fields
+    ├── config/
+    │   ├── <device>.master.include.rules      #   every table and include, through $NC_RULES_HOME
+    │   └── <device>.common.constants.rules    #   fixed values: agent, manager, class
+    ├── transformation_rules/
+    │   ├── <mib-module>.rules                 #   one file per vendor MIB: the cases for its traps
+    │   ├── standard.rules                     #   the standard SNMP traps (cold start, link down and up)
+    │   └── field_normalization.rules          #   severity, type and summary set the same way for every trap
+    └── lookups/
+        ├── probe_specific/<device>_traps.lookup       # one row per trap: OID, name, severity, type, group
+        ├── probe_specific/<device>_alarm_ids.lookup   # one row per alarm number carried inside a trap
+        └── constants/field_normalization.constant.rules
+```
+
+### What each output means
+
+| Prompt | Output | What it means |
+|---|---|---|
+| 1 · Catalogue | `trap-catalogue.md` | The list of every trap to integrate, each matched to its definition in the MIBs. It gives the trap's OID, how it arrives at the probe (enterprise, generic, specific), its severity, whether it is a problem or a clear, which problem a clear closes, and the trap list rows it comes from. It also lists the alarm numbers that arrive inside a generic trap, the decisions taken, where the trap list and the MIBs disagree, and the questions for the operator |
+| 1 · Catalogue | `trap-catalogue.json` | The same catalogue in a form the generator reads, so prompt 2 works from exactly what prompt 1 decided |
+| 2 · Generate | `rules/<device>/` | The probe rules, ready to install: lookups instead of hard-coded values, and paths through `$NC_RULES_HOME`. A clear and its problem share Node, AlertGroup and AlertKey, so the clear closes its own problem and no other |
+| 2 · Generate | `rules-generated.md` | The files written with their line counts, **how to install** them (where to copy the folder and the two include lines to add to the probe's main rules), the traps covered, the decisions, the self-check of the rules, and the questions for the operator |
+| 3 · Review | `rules-review.md` | Whether the rules can go to a test probe. It lists every finding with its file and line. A simulator replays a test trap of every kind and every problem/clear pair through the rules and compares the events with the catalogue. It ends with what was not checked: loading the rules in a real probe and its syntax check |
+
+Each report has a notes file beside it (`<report>.notes.md`) where Bob writes its decisions. The script writes the report and the rules from those notes. A change is made in the notes and the command is run again, never in the rules by hand.
+
+Prompts 4 and 5 are needed only when the review finds something. The fix (prompt 4) changes a decision in the notes, then generates `rules/<device>/` and `rules-generated.md` again. The second review (prompt 5) writes `rules-review-2.md`.
+
 ## Results
 
 | Step | Result |
