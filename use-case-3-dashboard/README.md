@@ -102,6 +102,16 @@ Do not change inputs.
 | **Writes** | The changed copy (step 1) and a report of the copy |
 | **Why these words** | "In a copy … under refactored/…" keeps the original as the baseline; "Do not change inputs" protects it; "under names of its own" rules out sharing the model's filters |
 
+#### What if the new device is not exactly like the model?
+
+The copy repeats the model's lines and changes only the names Bob lists. So the new device gets the model's tiles, filters and selection, and nothing else.
+
+- **A value that depends on the label**, such as the margin that lines the tiles up after the label, is taken from the rows whose label has the same number of characters as the new one, and the report names those rows. If no row has a label of that length, the model's value stays and the report asks the owner.
+- **Anything the model does not have**, such as another tile or another condition in the filter, cannot come from a copy. Bob writes it as a question for the owner; nothing is invented.
+- **The gate refuses** a copy that still holds any name of the model, a new name the page already uses, or a block that is not whole.
+
+**The limits.** The copy is checked as text. The page's own scripts, which fetch the counts and build the device filter, were not sent, so whether they pick up the new device cannot be checked here; the report asks the owner. Nothing was opened on the live system.
+
 ### 2 · Review the change — the copy against the original
 
 ```text
@@ -119,6 +129,17 @@ Do not fix anything.
 | **The gate refuses** | Any difference left unjudged |
 | **Writes** | A review of the change |
 | **Why these words** | "Do not fix anything" keeps the reviewer and the author apart |
+
+#### What does the review check, and what can it miss?
+
+The review works in two passes:
+
+1. **The comparison (a script)** lists every line that differs between the copy and the original page, with the strings and calls each difference adds or removes. Nothing that changed can be left out of the list, not even a lost line or a changed line ending.
+2. **Bob** judges each difference: intended (part of the request) or unintended, with the reason. It also reads the changed lines and the lines that use the same names, such as the select lists, for problems a comparison cannot show, such as a tile that still opens the model's filter.
+
+The gate does not pass while any difference is left unjudged.
+
+**The limits.** The review sees only this page. It cannot see the scripts the page loads from the server, and it does not open the page in a browser. What only the owner can confirm goes into the report as a question.
 
 ### 3 · Fix — the findings of the review
 
@@ -173,6 +194,18 @@ Do not fix anything.
 | **The gate refuses** | A quote that is not on its line; a diagnosis with no cause shown and an open cause that names no test |
 | **Writes** | A diagnosis |
 | **Why these words** | The symptom is given as reported; "Do not fix anything" keeps the page unchanged, since the cause may be by design |
+
+#### How is the cause found, and what if it is not in the page?
+
+The diagnosis works in two passes:
+
+1. **The script** lists every line that names what the symptom involves (the two devices, their tiles, their filters), with the scan's hits on those lines.
+2. **Bob** reads those lines and compares the faulty tiles with tiles that work. Each possible cause gets its line, a quote from that line, how it produces the symptom, and a status: **shown** (the line itself proves it), **ruled out**, or **open**, with the test that would decide it. The gate checks that every quote is on its line.
+
+- **If the cause is not in the page**, because it is in a script the page loads, in the Impact policy or in the events, the diagnosis says that no cause is shown in the page and names the test that would decide it.
+- **If the code may be doing what its owner intended**, for example a filter that covers two devices on purpose, the diagnosis asks the owner instead of calling it a bug. That is why the prompt says "Do not fix anything".
+
+**The limits.** The diagnosis is a reading of the code; nothing is run.
 
 ## From Input to Output
 

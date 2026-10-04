@@ -21,3 +21,14 @@ Do not fix anything.
 | **The gate refuses** | A finding without a decision |
 | **Writes** | The review |
 | **Why these words** | "Do not fix anything" keeps the reviewer apart from the generator; a fix goes back through the notes and prompt 2 |
+
+## What does the simulator check, and what can it miss?
+
+The review works in two passes:
+
+1. **A check of the rules as text**: syntax, every path through `$NC_RULES_HOME`, the log format, no commented-out code, one case per catalogue trap, event ids, severities and types, and the key of each problem and its clear.
+2. **The simulator**, a small interpreter of the rules language. It sends one test trap through the rules for every trap in the catalogue and one for every alarm number, then each problem followed by its clear, and one trap that is in no list. It compares each event with the catalogue. A clear must have the same Node, AlertGroup and AlertKey as its problem, so that it closes its own problem and no other.
+
+Each finding has its file and line, and Bob decides it: a fix, a question for the operator, or not a defect, with the reason the files show.
+
+**The limits.** The simulator is not the probe. It runs the parts of the rules language these rules use, with test values built from the catalogue, not real traps from the devices. Before production the rules still need the probe's own syntax check, a load in a test probe and a real test trap of each kind. The review's last section, **Not checked**, says so.

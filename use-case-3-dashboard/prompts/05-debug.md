@@ -21,3 +21,15 @@ Do not fix anything.
 | **The gate refuses** | A quote that is not on its line; a diagnosis with no cause shown and an open cause that names no test |
 | **Writes** | A diagnosis |
 | **Why these words** | The symptom is given as reported; "Do not fix anything" keeps the page unchanged, since the cause may be by design |
+
+## How is the cause found, and what if it is not in the page?
+
+The diagnosis works in two passes:
+
+1. **The script** lists every line that names what the symptom involves (the two devices, their tiles, their filters), with the scan's hits on those lines.
+2. **Bob** reads those lines and compares the faulty tiles with tiles that work. Each possible cause gets its line, a quote from that line, how it produces the symptom, and a status: **shown** (the line itself proves it), **ruled out**, or **open**, with the test that would decide it. The gate checks that every quote is on its line.
+
+- **If the cause is not in the page**, because it is in a script the page loads, in the Impact policy or in the events, the diagnosis says that no cause is shown in the page and names the test that would decide it.
+- **If the code may be doing what its owner intended**, for example a filter that covers two devices on purpose, the diagnosis asks the owner instead of calling it a bug. That is why the prompt says "Do not fix anything".
+
+**The limits.** The diagnosis is a reading of the code; nothing is run.

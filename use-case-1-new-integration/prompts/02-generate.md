@@ -21,3 +21,14 @@ Do not decide what is the client's to decide.
 | **The gate refuses** | An open block; a template that names a variable the trap does not have; two clear groups sharing one AlertGroup (a clear of one would close the other's problem); any finding of the check or the simulator |
 | **Writes** | The rules folder and a report with the files, how to install them, every trap's key and summary, and the questions for the operator |
 | **Why these words** | "Following" the standards document sets the target tree; "Do not decide what is the client's to decide" turns the domain folder, the field for the service-impact flag and the severity conflicts into questions |
+
+## What if the scripts cannot propose a value?
+
+The generation also works in two passes:
+
+1. **The scripts** propose, from the catalogue, the file layout, the expiry of events, and each trap's group, key and summary. They flag what they cannot settle: an event text in the trap list that names a variable the trap does not carry, or a trap with no text to build a summary from. Those blocks are left open, with the facts.
+2. **Bob** writes the open blocks and accepts or changes the proposals. No rule is written until every block is decided, and the gate refuses a summary that names a variable the trap does not have.
+
+Choices that belong to the operator are not made by Bob: the domain folder the rules go into, the event field that carries the service-impact flag, and which severity wins when two sources disagree. They are proposed and listed as questions in the report.
+
+**The limits.** The rules are generated as text and checked by the review and its simulator (prompt 3). They have not been loaded by a real probe.

@@ -137,6 +137,26 @@ Do not write any rules.
 | **Writes** | The catalogue (every trap with its SNMPv1 form, severity, type, clear group and flags; the alarm-number table; the decisions; where the list and the MIBs differ; the questions for the operator) and a machine-readable copy for the next step |
 | **Why these words** | "Do not write any rules" keeps one concern per step: the list is settled before anything is generated from it |
 
+#### What if the trap list and the MIBs do not agree?
+
+The catalogue is built in two passes:
+
+1. **The scripts** read every sheet and every MIB and match each row of the list to a MIB trap, by OID and by name. Every disagreement they find becomes a **decision block** in the notes file, with the facts and a proposal. They find the same things every time.
+2. **Bob** decides each block. The gate does not pass while a block is undecided or a trap has no severity.
+
+What happens in each case:
+
+| Case | What happens |
+|---|---|
+| A trap is in the list but in no MIB that was sent | It is kept, with the OID and the severity from the list. Its variables cannot be named, and the report asks the operator for the MIB |
+| An OID one digit away from a MIB OID | The MIB's OID is proposed, and the report lists the correction |
+| A row whose name and OID point to two different traps | The trap is chosen by its description, and the report asks the operator to confirm |
+| A trap listed twice with two severities | One severity is proposed, and the report asks the operator to confirm |
+| A problem with no matching clear | It stays a problem that is cleared by hand, and the report asks whether it should expire instead |
+| A trap a MIB defines but the list does not ask for | It is not catalogued: the list sets the scope |
+
+**The limits.** The catalogue checks the list against the MIBs, not against the device. If the device sends a trap that neither the list nor a MIB names, the rules still give it an event, with an event id that marks it as unknown, so it is seen rather than lost. If the list and the MIB are both wrong in the same way, nothing here can tell.
+
 ### 2 · Generate — the rules, in the operator's folder tree
 
 ```text
@@ -155,6 +175,17 @@ Do not decide what is the client's to decide.
 | **Writes** | The rules folder and a report with the files, how to install them, every trap's key and summary, and the questions for the operator |
 | **Why these words** | "Following" the standards document sets the target tree; "Do not decide what is the client's to decide" turns the domain folder, the field for the service-impact flag and the severity conflicts into questions |
 
+#### What if the scripts cannot propose a value?
+
+The generation also works in two passes:
+
+1. **The scripts** propose, from the catalogue, the file layout, the expiry of events, and each trap's group, key and summary. They flag what they cannot settle: an event text in the trap list that names a variable the trap does not carry, or a trap with no text to build a summary from. Those blocks are left open, with the facts.
+2. **Bob** writes the open blocks and accepts or changes the proposals. No rule is written until every block is decided, and the gate refuses a summary that names a variable the trap does not have.
+
+Choices that belong to the operator are not made by Bob: the domain folder the rules go into, the event field that carries the service-impact flag, and which severity wins when two sources disagree. They are proposed and listed as questions in the report.
+
+**The limits.** The rules are generated as text and checked by the review and its simulator (prompt 3). They have not been loaded by a real probe.
+
 ### 3 · Review — the rules against the catalogue, with the simulator
 
 ```text
@@ -172,6 +203,17 @@ Do not fix anything.
 | **The gate refuses** | A finding without a decision |
 | **Writes** | The review |
 | **Why these words** | "Do not fix anything" keeps the reviewer apart from the generator; a fix goes back through the notes and prompt 2 |
+
+#### What does the simulator check, and what can it miss?
+
+The review works in two passes:
+
+1. **A check of the rules as text**: syntax, every path through `$NC_RULES_HOME`, the log format, no commented-out code, one case per catalogue trap, event ids, severities and types, and the key of each problem and its clear.
+2. **The simulator**, a small interpreter of the rules language. It sends one test trap through the rules for every trap in the catalogue and one for every alarm number, then each problem followed by its clear, and one trap that is in no list. It compares each event with the catalogue. A clear must have the same Node, AlertGroup and AlertKey as its problem, so that it closes its own problem and no other.
+
+Each finding has its file and line, and Bob decides it: a fix, a question for the operator, or not a defect, with the reason the files show.
+
+**The limits.** The simulator is not the probe. It runs the parts of the rules language these rules use, with test values built from the catalogue, not real traps from the devices. Before production the rules still need the probe's own syntax check, a load in a test probe and a real test trap of each kind. The review's last section, **Not checked**, says so.
 
 ### 4 · Fix and 5 · Review the fix — only when the review finds something
 

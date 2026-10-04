@@ -50,6 +50,7 @@ th { background: var(--surface); font-weight: 600; }
 .prompt .head strong { font-size: 1.05rem; }
 .prompt .body { padding: 4px 16px 14px; }
 .prompt pre { margin: 10px 0 6px; }
+.why { border-left: 4px solid var(--ok); background: var(--surface); padding: 10px 14px; border-radius: 6px; margin: 10px 0; }
 .note { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
 .ok { color: var(--ok); font-weight: 600; }
 .warn { color: var(--warn); font-weight: 600; }
@@ -152,6 +153,27 @@ Write reports/diagnosis.md.
 Do not fix anything.</pre>
   </div></div>
   <div class="note">Short prompts keep the run short and cheap in Bob coins. The model device should be one whose names are its own; the review step shows anything the copy shares with other devices.</div>
+</section>
+
+<section>
+  <h2>Questions people ask</h2>
+  <div class="why"><h3>What if the new device is not exactly like the model?</h3>
+<p>The copy repeats the model's lines and changes only the names Bob lists. So the new device gets the model's tiles, filters and selection, and nothing else.</p>
+<ul><li><strong>A value that depends on the label</strong>, such as the margin that lines the tiles up after the label, is taken from the rows whose label has the same number of characters as the new one, and the report names those rows. If no row has a label of that length, the model's value stays and the report asks the owner.</li><li><strong>Anything the model does not have</strong>, such as another tile or another condition in the filter, cannot come from a copy. Bob writes it as a question for the owner; nothing is invented.</li><li><strong>The gate refuses</strong> a copy that still holds any name of the model, a new name the page already uses, or a block that is not whole.</li></ul>
+<p><strong>The limits.</strong> The copy is checked as text. The page's own scripts, which fetch the counts and build the device filter, were not sent, so whether they pick up the new device cannot be checked here; the report asks the owner. Nothing was opened on the live system.</p>
+  </div>
+  <div class="why"><h3>What does the review check, and what can it miss?</h3>
+<p>The review works in two passes:</p>
+<ol><li><strong>The comparison (a script)</strong> lists every line that differs between the copy and the original page, with the strings and calls each difference adds or removes. Nothing that changed can be left out of the list, not even a lost line or a changed line ending.</li><li><strong>Bob</strong> judges each difference: intended (part of the request) or unintended, with the reason. It also reads the changed lines and the lines that use the same names, such as the select lists, for problems a comparison cannot show, such as a tile that still opens the model's filter.</li></ol>
+<p>The gate does not pass while any difference is left unjudged.</p>
+<p><strong>The limits.</strong> The review sees only this page. It cannot see the scripts the page loads from the server, and it does not open the page in a browser. What only the owner can confirm goes into the report as a question.</p>
+  </div>
+  <div class="why"><h3>How is the cause found, and what if it is not in the page?</h3>
+<p>The diagnosis works in two passes:</p>
+<ol><li><strong>The script</strong> lists every line that names what the symptom involves (the two devices, their tiles, their filters), with the scan's hits on those lines.</li><li><strong>Bob</strong> reads those lines and compares the faulty tiles with tiles that work. Each possible cause gets its line, a quote from that line, how it produces the symptom, and a status: <strong>shown</strong> (the line itself proves it), <strong>ruled out</strong>, or <strong>open</strong>, with the test that would decide it. The gate checks that every quote is on its line.</li></ol>
+<ul><li><strong>If the cause is not in the page</strong>, because it is in a script the page loads, in the Impact policy or in the events, the diagnosis says that no cause is shown in the page and names the test that would decide it.</li><li><strong>If the code may be doing what its owner intended</strong>, for example a filter that covers two devices on purpose, the diagnosis asks the owner instead of calling it a bug. That is why the prompt says "Do not fix anything".</li></ul>
+<p><strong>The limits.</strong> The diagnosis is a reading of the code; nothing is run.</p>
+  </div>
 </section>
 
 <section>

@@ -50,6 +50,7 @@ th { background: var(--surface); font-weight: 600; }
 .prompt .head strong { font-size: 1.05rem; }
 .prompt .body { padding: 4px 16px 14px; }
 .prompt pre { margin: 10px 0 6px; }
+.why { border-left: 4px solid var(--ok); background: var(--surface); padding: 10px 14px; border-radius: 6px; margin: 10px 0; }
 .note { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
 .ok { color: var(--ok); font-weight: 600; }
 .warn { color: var(--warn); font-weight: 600; }
@@ -140,6 +141,29 @@ Do not decide what is the client's to decide.</pre>
 Write reports/rules-review.md.
 Do not fix anything.</pre>
   </div></div>
+</section>
+
+<section>
+  <h2>Questions people ask</h2>
+  <div class="why"><h3>What if the trap list and the MIBs do not agree?</h3>
+<p>The catalogue is built in two passes:</p>
+<ol><li><strong>The scripts</strong> read every sheet and every MIB and match each row of the list to a MIB trap, by OID and by name. Every disagreement they find becomes a <strong>decision block</strong> in the notes file, with the facts and a proposal. They find the same things every time.</li><li><strong>Bob</strong> decides each block. The gate does not pass while a block is undecided or a trap has no severity.</li></ol>
+<p>What happens in each case:</p>
+<div class="table-wrap"><table><thead><tr><th>Case</th><th>What happens</th></tr></thead><tbody><tr><td>A trap is in the list but in no MIB that was sent</td><td>It is kept, with the OID and the severity from the list. Its variables cannot be named, and the report asks the operator for the MIB</td></tr><tr><td>An OID one digit away from a MIB OID</td><td>The MIB's OID is proposed, and the report lists the correction</td></tr><tr><td>A row whose name and OID point to two different traps</td><td>The trap is chosen by its description, and the report asks the operator to confirm</td></tr><tr><td>A trap listed twice with two severities</td><td>One severity is proposed, and the report asks the operator to confirm</td></tr><tr><td>A problem with no matching clear</td><td>It stays a problem that is cleared by hand, and the report asks whether it should expire instead</td></tr><tr><td>A trap a MIB defines but the list does not ask for</td><td>It is not catalogued: the list sets the scope</td></tr></tbody></table></div>
+<p><strong>The limits.</strong> The catalogue checks the list against the MIBs, not against the device. If the device sends a trap that neither the list nor a MIB names, the rules still give it an event, with an event id that marks it as unknown, so it is seen rather than lost. If the list and the MIB are both wrong in the same way, nothing here can tell.</p>
+  </div>
+  <div class="why"><h3>What if the scripts cannot propose a value?</h3>
+<p>The generation also works in two passes:</p>
+<ol><li><strong>The scripts</strong> propose, from the catalogue, the file layout, the expiry of events, and each trap's group, key and summary. They flag what they cannot settle: an event text in the trap list that names a variable the trap does not carry, or a trap with no text to build a summary from. Those blocks are left open, with the facts.</li><li><strong>Bob</strong> writes the open blocks and accepts or changes the proposals. No rule is written until every block is decided, and the gate refuses a summary that names a variable the trap does not have.</li></ol>
+<p>Choices that belong to the operator are not made by Bob: the domain folder the rules go into, the event field that carries the service-impact flag, and which severity wins when two sources disagree. They are proposed and listed as questions in the report.</p>
+<p><strong>The limits.</strong> The rules are generated as text and checked by the review and its simulator (prompt 3). They have not been loaded by a real probe.</p>
+  </div>
+  <div class="why"><h3>What does the simulator check, and what can it miss?</h3>
+<p>The review works in two passes:</p>
+<ol><li><strong>A check of the rules as text</strong>: syntax, every path through <code>$NC_RULES_HOME</code>, the log format, no commented-out code, one case per catalogue trap, event ids, severities and types, and the key of each problem and its clear.</li><li><strong>The simulator</strong>, a small interpreter of the rules language. It sends one test trap through the rules for every trap in the catalogue and one for every alarm number, then each problem followed by its clear, and one trap that is in no list. It compares each event with the catalogue. A clear must have the same Node, AlertGroup and AlertKey as its problem, so that it closes its own problem and no other.</li></ol>
+<p>Each finding has its file and line, and Bob decides it: a fix, a question for the operator, or not a defect, with the reason the files show.</p>
+<p><strong>The limits.</strong> The simulator is not the probe. It runs the parts of the rules language these rules use, with test values built from the catalogue, not real traps from the devices. Before production the rules still need the probe's own syntax check, a load in a test probe and a real test trap of each kind. The review's last section, <strong>Not checked</strong>, says so.</p>
+  </div>
 </section>
 
 <section>

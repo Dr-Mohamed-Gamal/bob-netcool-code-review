@@ -21,3 +21,14 @@ Do not fix anything.
 | **The gate refuses** | Any difference left unjudged |
 | **Writes** | A review of the change |
 | **Why these words** | "Do not fix anything" keeps the reviewer and the author apart |
+
+## What does the review check, and what can it miss?
+
+The review works in two passes:
+
+1. **The comparison (a script)** lists every line that differs between the copy and the original page, with the strings and calls each difference adds or removes. Nothing that changed can be left out of the list, not even a lost line or a changed line ending.
+2. **Bob** judges each difference: intended (part of the request) or unintended, with the reason. It also reads the changed lines and the lines that use the same names, such as the select lists, for problems a comparison cannot show, such as a tile that still opens the model's filter.
+
+The gate does not pass while any difference is left unjudged.
+
+**The limits.** The review sees only this page. It cannot see the scripts the page loads from the server, and it does not open the page in a browser. What only the owner can confirm goes into the report as a question.
